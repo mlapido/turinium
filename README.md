@@ -21,22 +21,22 @@ Turinium is a Python framework designed to streamline software development by re
 
 To install Turinium, use pip:
 
-\`\`\`bash
+```bash
 pip install turinium
-\`\`\`
+```
 
 ## Usage
 
 Here's a simple example to get you started:
 
-\`\`\`python
+```python
 from turinium import TuriniumDB
 
 # Initialize database connection
 db = TuriniumDB('your_connection_string_here')
 
 # Perform database operations
-\`\`\`
+```
 
 For more detailed usage instructions, please refer to our [documentation](#).
 
