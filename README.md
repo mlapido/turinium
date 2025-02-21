@@ -1,6 +1,6 @@
 # Turinium: Empowering Intelligent Systems
 
-Turinium is a Python framework designed to streamline software development by reducing boilerplate code and providing utility functions for database connections, logging, error handling, and configuration management. Inspired by the pioneering work of Alan Turing, Turinium aims to empower intelligent systems for modern developers.
+Turinium is a Python framework designed to streamline software development by reducing boilerplate code and providing utility functions for database connections, logging, sending e-mails, error handling, and configuration management. Inspired by the pioneering work of Alan Turing, Turinium aims to empower intelligent systems for modern developers.
 
 ## Table of Contents
 
