@@ -64,7 +64,7 @@ class EmailSender:
 
     def _create_message(self, to_emails: List[str], subject: str, html_message: str,
                         text_message: Optional[str] = None, cc_emails: Optional[List[str]] = None,
-                        bcc_emails: Optional[List[str]] = None, attachments: Optional[List[str]] = None) -> MIMEMultipart:
+                        attachments: Optional[List[str]] = None) -> MIMEMultipart:
         """
         Creates an email message with HTML, plaintext fallback, and optional attachments.
 
@@ -73,35 +73,38 @@ class EmailSender:
         :param html_message: HTML content of the email.
         :param text_message: (Optional) Plain text alternative content.
         :param cc_emails: (Optional) List of CC recipient emails.
-        :param bcc_emails: (Optional) List of BCC recipient emails.
         :param attachments: (Optional) List of file paths to attach.
         :return: MIMEMultipart email message.
         """
-        msg = MIMEMultipart()
-        msg['Subject'] = subject
+        # Use 'mixed' to allow text, HTML, and attachments together
+        msg = MIMEMultipart('mixed')
         msg['From'] = self.sender_email
         msg['To'] = ', '.join(to_emails)
+        msg['Subject'] = subject
 
         if cc_emails:
             msg['Cc'] = ', '.join(cc_emails)
 
-        # Add plain-text version first (if provided)
-        if text_message:
-            msg.attach(MIMEText(text_message, 'plain'))
+        # BCC should not be added to headers
 
-        # Attach HTML version
-        msg.attach(MIMEText(html_message, 'html'))
+        # Build the 'alternative' part that includes both plain-text and HTML versions
+        alt_part = MIMEMultipart('alternative')
+        if text_message:
+            alt_part.attach(MIMEText(text_message, 'plain'))
+        alt_part.attach(MIMEText(html_message, 'html'))
+
+        # Attach the text/HTML content to the main message
+        msg.attach(alt_part)
 
         # Attach files if any
         if attachments:
             for filepath in attachments:
                 if os.path.exists(filepath):
-                    with open(filepath, "rb") as file:
-                        part = MIMEBase("application", "octet-stream")
+                    with open(filepath, 'rb') as file:
+                        part = MIMEBase('application', 'octet-stream')
                         part.set_payload(file.read())
-
                     encoders.encode_base64(part)
-                    part.add_header("Content-Disposition", f"attachment; filename={os.path.basename(filepath)}")
+                    part.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(filepath)}"')
                     msg.attach(part)
 
         return msg
@@ -137,7 +140,7 @@ class EmailSender:
 
         try:
             # Create email message
-            msg = self._create_message(to_emails, subject, html_message, text_message, cc_emails, bcc_emails, attachments)
+            msg = self._create_message(to_emails, subject, html_message, text_message, cc_emails, attachments)
 
             # Send the email
             self.smtp_obj.sendmail(self.sender_email, all_recipients, msg.as_string())
@@ -146,4 +149,5 @@ class EmailSender:
 
         except smtplib.SMTPException as e:
             self.logger.error(f"Failed to send email: {e}")
-            return False
+
+        return False
