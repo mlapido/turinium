@@ -130,23 +130,59 @@ class AppConfig:
     def _load_env_vars(self):
         """
         Loads environment variables from a .env file (if it exists), merging them
-        into `self.config_data`. If an environment variable name contains an underscore,
-        e.g. "BLOCK_KEY", it is interpreted as `config_data["BLOCK"]["KEY"]`.
-        Otherwise, it's stored as a top-level key.
+        into `self.config_data`.
+
+        - Uses `.` to define block nesting (e.g., `DB.Host` → `config_data["DB"]["Host"]`).
+        - Standalone variables are placed inside the `"Env_Vars"` block.
+        - If a value is enclosed in `{}`, it's parsed as JSON and treated as a full block.
+
+        Example .env:
+            DB.Host=localhost
+            DB.Port=5432
+            API_Key=secret123
+            AWS_Credentials={"access_key": "ABC", "secret_key": "XYZ"}
+
+        Results in:
+            {
+                "DB": {
+                    "Host": "localhost",
+                    "Port": "5432"
+                },
+                "Env_Vars": {
+                    "API_Key": "secret123"
+                },
+                "AWS_Credentials": {
+                    "access_key": "ABC",
+                    "secret_key": "XYZ"
+                }
+            }
         """
         if not self.env_file_path.exists():
             return  # No .env file found, skip
+
         load_dotenv(self.env_file_path)
 
         for key, value in os.environ.items():
-            parts = key.split("_", 1)
+            # Handle JSON-like blocks (values inside `{}` become full objects)
+            if value.startswith("{") and value.endswith("}"):
+                try:
+                    self.config_data[key] = json.loads(value)
+                    continue  # Skip further processing since it's a full block
+                except json.JSONDecodeError:
+                    pass  # Ignore errors and treat as a regular string
+
+            # Handle key with `.` notation for nesting
+            parts = key.split(".", 1)
             if len(parts) == 2:
                 block_name, key_name = parts
                 if block_name not in self.config_data:
                     self.config_data[block_name] = {}
                 self.config_data[block_name][key_name] = value
             else:
-                self.config_data[key] = value
+                # Place standalone variables in "Env_Vars"
+                if "Env_Vars" not in self.config_data:
+                    self.config_data["Env_Vars"] = {}
+                self.config_data["Env_Vars"][key] = value
 
     def _handle_cmd_line_params(self):
         """

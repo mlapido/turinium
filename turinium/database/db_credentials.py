@@ -1,7 +1,6 @@
 from typing import Optional, Literal
 from dataclasses import dataclass
-from urllib.parse import quote_plus
-
+from sqlalchemy.engine.url import URL
 
 @dataclass
 class DBCredentials:
@@ -23,13 +22,23 @@ class DBCredentials:
 
         :return: Database connection string.
         """
-        user = quote_plus(self.username)
-        pwd = quote_plus(self.password)
-
         if self.db_type.lower() == "sqlserver":
-            driver = quote_plus(self.driver) if self.driver else "ODBC Driver 17 for SQL Server"
-            return f"mssql+pyodbc://{user}:{pwd}@{self.server}/{self.database}?driver={driver}"
+            driver = self.driver if self.driver else "ODBC Driver 17 for SQL Server"
+            return URL.create(
+                drivername="mssql+pyodbc",
+                username=self.username,
+                password=self.password,
+                host=self.server,
+                database=self.database,
+                query={"driver": driver}
+            )
         elif self.db_type.lower() == "postgres":
-            return f"postgresql://{user}:{pwd}@{self.server}/{self.database}"
+            return URL.create(
+                drivername="postgresql",
+                username=self.username,
+                password=self.password,
+                host=self.server,
+                database=self.database
+            )
         else:
             raise ValueError(f"Unsupported database type: {self.db_type}")
