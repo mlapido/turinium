@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "turinium"
+version = "0.1.0"
+description = "Turinium is a Python framework designed to streamline software development by reducing boilerplate code and providing utility functions for database connections, logging, error handling, and configuration management."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+  { name = "Milton Lapido", email = "milton.lapido@gmail.com" }
+]
+keywords = [
+  "software development",
+  "utilities",
+  "database",
+  "logging",
+  "configuration",
+  "python framework"
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries :: Python Modules"
+]
+dependencies = [
+  "pyyaml",
+  "toml",
+  "python-dotenv",
+  "colorlog",
+  "sqlalchemy"
+]
+
+[project.optional-dependencies]
+database_odbc = ["sqlalchemy", "pyodbc"]
+database_pg = ["sqlalchemy", "psycopg2-binary"]
+database_all = ["sqlalchemy", "pyodbc", "psycopg2-binary"]
+cli = ["click"]
+testing = ["pytest", "pytest-cov"]
+dev = ["black", "flake8", "mypy"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["turinium*"]

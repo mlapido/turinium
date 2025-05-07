@@ -1,0 +1,10 @@
+logs
+tests/database/__pycache__
+turinium/config/__pycache__
+turinium/database/__pycache__
+turinium/email/__pycache__
+turinium/logging/__pycache__
+turinium/__pycache__
+turinium.egg-info
+*.whl
+turinium-0.1.0.tar.gz
