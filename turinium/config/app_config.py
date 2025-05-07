@@ -5,6 +5,7 @@ import yaml
 import argparse
 from pathlib import Path
 from dotenv import load_dotenv
+import re
 
 
 class AppConfig:
@@ -28,8 +29,8 @@ class AppConfig:
     def __init__(self, config_files=None, env_file=None):
         """
         Constructor for AppConfig. Loads configuration from the specified files (or auto-detected
-        `config.ext`), then loads environment variables, and finally parses any command-line
-        arguments defined in the config.
+        `config.ext`), then loads environment variables, replaces environment placeholders, and
+        finally parses any command-line arguments defined in the config.
 
         :raises FileNotFoundError: If no config file is found or specified.
         :raises ValueError: If any provided config file has an unsupported format or parsing error.
@@ -40,6 +41,7 @@ class AppConfig:
 
         self._load_config_from_files()
         self._load_env_vars()
+        self._resolve_env_placeholders(self.config_data)
         self._handle_cmd_line_params()
 
     def _resolve_config_files(self, config_files):
@@ -183,6 +185,42 @@ class AppConfig:
                 if "Env_Vars" not in self.config_data:
                     self.config_data["Env_Vars"] = {}
                 self.config_data["Env_Vars"][key] = value
+
+    def _resolve_env_placeholders(self, data):
+        """
+        Recursively traverses the configuration structure and replaces values
+        matching the pattern %%ENV_VAR%% with their actual environment variable value.
+
+        :param data: The config data dictionary (possibly nested).
+        :type data: dict
+        """
+        for key, value in data.items():
+            if isinstance(value, dict):
+                self._resolve_env_placeholders(value)
+            elif isinstance(value, list):
+                for i in range(len(value)):
+                    if isinstance(value[i], dict):
+                        self._resolve_env_placeholders(value[i])
+                    elif isinstance(value[i], str):
+                        value[i] = self._resolve_placeholder_string(value[i])
+            elif isinstance(value, str):
+                data[key] = self._resolve_placeholder_string(value)
+
+    def _resolve_placeholder_string(self, value):
+        """
+        Replaces a string formatted as %%ENV_VAR%% with the corresponding value from
+        the environment variables. If not matched or not set, the original string is returned.
+
+        :param value: The string to evaluate.
+        :type value: str
+        :return: The environment-substituted string if matched, or the original string.
+        :rtype: str
+        """
+        match = re.fullmatch(r"%%([A-Z0-9_]+)%%", value)
+        if match:
+            env_var = match.group(1)
+            return os.getenv(env_var, value)
+        return value
 
     def _handle_cmd_line_params(self):
         """

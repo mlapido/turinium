@@ -42,7 +42,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-database = ["sqlalchemy", "pyodbc", "psycopg2-binary"]
+database_odbc = ["sqlalchemy", "pyodbc"]
+database_pg = ["sqlalchemy", "psycopg2-binary"]
+database_all = ["sqlalchemy", "pyodbc", "psycopg2-binary"]
 cli = ["click"]
 testing = ["pytest", "pytest-cov"]
 dev = ["black", "flake8", "mypy"]

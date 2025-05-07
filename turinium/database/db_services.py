@@ -75,7 +75,7 @@ class DBServices:
         params = (params,) if params and not isinstance(params, tuple) else params or ()
 
         # Execute the query
-        success, result = DBRouter.execute_query(db_name, query_type, query_name, params)
+        success, result = DBRouter.execute_query(db_name, query_type, query_name, params, ret_type)
 
         # Close connection if requested
         if close_connection and DBRouter.has_connection(db_name):
