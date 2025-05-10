@@ -1,0 +1,50 @@
+image: python:3.11
+
+pipelines:
+  default:
+    - step:
+        name: Test & Coverage
+        caches:
+          - pip
+        script:
+          - pip install --upgrade pip
+          - pip install -r requirements.txt
+          - pip install pytest pytest-cov
+          - pytest --cov=turinium tests/
+        artifacts:
+          - htmlcov/**
+
+  tags:
+    'v*':
+      - step:
+          name: Validate Version & Changelog
+          script:
+            - echo "🔍 Validating version and changelog..."
+            - export VERSION=${BITBUCKET_TAG#v}
+            - echo "Version from tag: $VERSION"
+            - grep "## \[$VERSION\]" CHANGELOG.md || { echo "❌ Missing changelog entry for version $VERSION"; exit 1; }
+            - python -c "assert open('turinium/__init__.py').read().find('$VERSION') != -1, '❌ __init__.py does not contain the version'"
+      - step:
+          name: Build & Publish
+          caches:
+            - pip
+          script:
+            - pip install --upgrade build twine
+            - python -m build
+
+            # Decide where to publish based on RELEASE_ENV
+            - >
+              if [ "$RELEASE_ENV" = "testpypi" ]; then
+                twine upload --repository-url https://test.pypi.org/legacy/ dist/* -u __token__ -p $TEST_PYPI_API_TOKEN;
+              else
+                twine upload dist/* -u __token__ -p $PYPI_API_TOKEN;
+              fi
+  branches:
+    master:
+      - step:
+          name: Validate Version & Tag
+          caches:
+            - git
+          script:
+            - apt update && apt install -y git
+            - ./scripts/tag_version.sh

@@ -11,7 +11,7 @@ Author: Milton Lapido
 License: MIT
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 # Configuration Management
 from .config import AppConfig
