@@ -10,10 +10,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial structure for the changelog using Keep a Changelog format.
+- .
 
 ### Changed
-- Placeholder section to prepare for first public release.
+- .
+
+---
+
+## [0.2.0] - 2025-05-11
+
+### Added
+- [AppConfig] `SharedAppConfig` factory class for managing and caching shared `AppConfig` instances based on normalized `config_files` and `env_file` arguments.
+- [AppConfig] Support for passing a directory as `config_files`, automatically loading all files with supported extensions (`.json`, `.toml`, `.yaml`, `.yml`).
+- [AppConfig] Support for passing a list containing paths to files and/or directories as `config_files`.
+- [DBServices] Support for automatic registration of databases and services in `DBServices`via the `auto_register()` class method.
+- [DBServices] Added support for executing a registered service across multiple rows (from a DataFrame or list) via the new `exec_service_batch` method, with optional `stop_on_fail` behavior configurable per call or via service config.
+- [DataSourceServices:NEW] Supoport for handling different data sources like FTP, S3, FileSystem, and others. At this time only FTP is implemented.
+- [DataSourceServices:NEW] `FTPCredentials` dataclass to hold connection info to a FTP server.
+- [DataSourceServices:NEW] `FTPConnection` class to handle the connection to a FTP server.
+- [DataSourceServices:NEW] `FTPDataSource` class that implements a FTP server as a data source.
+- [DataSourceServices:NEW] `BaseDataSource` base class to implement data sources.
+
+### Changed
+- [AppConfig] Improved `_resolve_config_files()` to validate config extensions and normalize inputs to absolute `Path` objects.
+- [AppConfig] Updated all docstrings in `AppConfig` and `SharedAppConfig` to align with project-wide Sphinx-style documentation guidelines.
+
+### Removed
+- None.
 
 ---
 

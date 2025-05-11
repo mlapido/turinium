@@ -11,7 +11,7 @@ Author: Milton Lapido
 License: MIT
 """
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 # Configuration Management
 from .config import AppConfig
@@ -25,4 +25,4 @@ from .email import EmailSender
 # Logging
 from .logging import TLogging
 
-__all__ = ["AppConfig", "DBRouter", "DBConnection", "DBCredentials", "DBServices", "EmailSender", "TLogging"]
+__all__ = ["AppConfig", "DBRouter", "DBConnection", "DBCredentials", "DBServices", "EmailSender", "TLogging", "DataSourceServices"]
