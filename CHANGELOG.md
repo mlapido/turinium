@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [DBServices] Replaced the config tags `"sp"` and `"fn"` with a unified `"routine"` tag for consistency.
 - [Project Structure] Some `__init__.py` entries were corrected.
 - [Project Structure] `SharedAppConfig` moved to its own dedicated file.
+- [DBServices] Adjusted to handle stored procedures with params properly..
+- [DataSource] Alass FTPConnection had several fixes related to file names and paths,
 
 ### Removed
 - [Loaders] The `loaders` module has been abandoned and removed from the project.
