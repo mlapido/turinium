@@ -47,10 +47,10 @@ class DBServices:
         """
         from turinium.config import SharedAppConfig
 
-        if SharedAppConfig.has_instance():
-            app_config = SharedAppConfig.get_instance()
-            databases = app_config.get(' databases', None)
-            services = app_config.get(' services', None)
+        if SharedAppConfig.is_initialized():
+            app_config = SharedAppConfig()
+            databases = app_config.get_config_block('databases')
+            services = app_config.get_config_block('db_services')
 
             if databases:
                 cls.register_databases(databases)
@@ -85,10 +85,8 @@ class DBServices:
         cls._logger.info(f"Services registered: {list(services_config.keys())}")
 
     @classmethod
-    def exec_service(
-        cls, service_name: str, params: Optional[Union[Tuple, Any]] = None,
-        close_connection: bool = False
-    ) -> Tuple[bool, Union[pd.DataFrame, Any]]:
+    def exec_service(cls, service_name: str, params: Optional[Union[Tuple, Any]] = None,
+                     close_connection: bool = False) -> Tuple[bool, Union[pd.DataFrame, Any]]:
         """
         Execute a registered stored procedure or function.
 
@@ -102,11 +100,7 @@ class DBServices:
             return False, None
 
         service = cls._services[service_name]
-        required_keys = {"db", "type", "ret_type"}
-        if service["type"] == "sp":
-            required_keys.add("sp")
-        elif service["type"] == "fn":
-            required_keys.add("fn")
+        required_keys = {"db", "type", "routine", "ret_type"}
 
         missing_keys = required_keys - set(service.keys())
         if missing_keys:
@@ -114,19 +108,20 @@ class DBServices:
             return False, None
 
         db_name = service["db"]
-        query_type = service["type"]
-        ret_type = service["ret_type"]
-        query_name = service.get("sp", service.get("fn"))[0]
+        routine_type = service["type"]
+        params_types = service.get("params_types")
+        return_type = service["ret_type"]
+        routine = service.get("routine")
 
-        if not query_name:
-            cls._logger.error(f"Service '{service_name}' does not have a valid 'sp' or 'fn'.")
+        if not routine:
+            cls._logger.error(f"Service '{service_name}' does not have a valid 'routine' value.")
             return False, None
 
         # Ensure params is always a tuple
         params = (params,) if params and not isinstance(params, tuple) else params or ()
 
         # Execute the query
-        success, result = DBRouter.execute_query(db_name, query_type, query_name, params, ret_type)
+        success, result = DBRouter.execute_query(db_name, routine_type, routine, params, params_types, return_type)
 
         # Close connection if requested
         if close_connection and DBRouter.has_connection(db_name):
@@ -135,21 +130,16 @@ class DBServices:
         # Process result based on return type
         if not success:
             return False, None
-        elif ret_type == "pandas":
+        elif return_type == "pandas":
             return True, result  # Pandas DataFrame is already in the right format
-        elif isinstance(ret_type, type) and is_dataclass(ret_type):  # Convert **all** rows to DataClass instances
-            return True, [ret_type(**row) for row in result] if result else []
+        elif isinstance(return_type, type) and is_dataclass(return_type):  # Convert **all** rows to DataClass instances
+            return True, [return_type(**row) for row in result] if result else []
         else:
             return True, result  # Default return
 
     @classmethod
-    def exec_service_batch(
-            cls,
-            service_name: str,
-            batch_data: Union[pd.DataFrame, list],
-            close_connection: bool = False,
-            stop_on_fail: Optional[bool] = None
-    ) -> Tuple[bool, list]:
+    def exec_service_batch(cls, service_name: str, batch_data: Union[pd.DataFrame, list],
+                           close_connection: bool = False, stop_on_fail: Optional[bool] = None) -> Tuple[bool, list]:
         """
         Executes a registered stored procedure or function for each row in the provided batch.
 

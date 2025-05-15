@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from turinium.datasources.base import BaseDataSource
 from turinium.datasources.ftp_credentials import FTPCredentials
 from turinium.datasources.ftp_connection import FTPConnection
@@ -23,14 +25,16 @@ class FTPDataSource(BaseDataSource):
         """Establishes the FTP/FTPS/SFTP connection."""
         self._conn.connect()
 
-    def list_files(self, remote_dir: str) -> list[str]:
+    def list_files(self, remote_dir: str, pattern: Optional[str] = None, pattern_type: str = "regex") -> List[str]:
         """
-        Lists all files in a directory on the remote FTP server.
+        Lists files in the specified remote directory, optionally filtering by pattern.
 
-        :param remote_dir: The remote path relative to base_dir (if defined).
-        :return: A list of filenames.
+        :param remote_dir: Path to the remote directory.
+        :param pattern: Optional glob or regex pattern to match.
+        :param pattern_type: 'Regex' (default) or 'glob'.
+        :return: A list of matching file names in the directory.
         """
-        return self._conn.list_files(remote_dir)
+        return self._conn.list_files(remote_dir, pattern, pattern_type)
 
     def download_file(self, remote_path: str, local_path: str) -> None:
         """
@@ -65,6 +69,24 @@ class FTPDataSource(BaseDataSource):
         :return: True if connection works, False otherwise.
         """
         return self._conn.is_alive()
+
+    def ensure_dir(self, remote_path: str) -> None:
+        """
+        Ensures the specified directory exists on the FTP/SFTP server.
+        This is a no-op for paths that already exist.
+
+        :param remote_path: Remote directory to ensure.
+        """
+        self._conn.ensure_dir(remote_path)
+
+    def exists(self, remote_path: str) -> bool:
+        """
+        Checks whether a path exists on the remote server.
+
+        :param remote_path: Path to check.
+        :return: True if it exists, False otherwise.
+        """
+        return self._conn.exists(remote_path)
 
     def close(self) -> None:
         """Closes the FTP connection."""

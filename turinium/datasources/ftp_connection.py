@@ -1,12 +1,16 @@
+import re
 import os
 import time
 import socket
 import paramiko
+import posixpath
+
 from ftplib import FTP, FTP_TLS, error_perm
 from typing import List, Optional
 from turinium.logging import TLogging
-from turinium.ftp.ftpcore import FTPCredentials
+from turinium.datasources.ftp_credentials import FTPCredentials
 
+from fnmatch import fnmatch
 
 class FTPConnection:
     """
@@ -41,13 +45,18 @@ class FTPConnection:
 
     def _full_path(self, remote_path: str) -> str:
         """
-        Prepends base_dir to a remote path, if defined.
+        Prepends base_dir to a remote path, if not already present.
 
         :param remote_path: The relative or absolute path requested.
         :return: The full remote path with base_dir applied if applicable.
         """
-        if self.credentials.base_dir:
-            return os.path.join(self.credentials.base_dir.rstrip('/'), remote_path.lstrip('/'))
+        remote_path = remote_path.replace("\\", "/")
+        base_dir = self.credentials.base_dir.replace("\\", "/") if self.credentials.base_dir else ""
+
+        if base_dir:
+            if not remote_path.startswith(base_dir):
+                remote_path = posixpath.join(base_dir, remote_path.lstrip("/"))
+
         return remote_path
 
     def connect(self):
@@ -114,16 +123,29 @@ class FTPConnection:
         self._client = transport
         self._sftp = paramiko.SFTPClient.from_transport(transport)
 
-    def list_files(self, remote_dir: str) -> List[str]:
+    def list_files(self, remote_dir: str, pattern: Optional[str] = None, pattern_type: str = "regex") -> List[str]:
         """
-        Lists files in the specified remote directory.
+        Lists files in the specified remote directory, optionally filtering by pattern.
 
         :param remote_dir: Path to the remote directory.
-        :return: A list of file names in the directory.
+        :param pattern: Optional glob or regex pattern to match.
+        :param pattern_type: 'Regex' (default) or 'glob'.
+        :return: A list of matching file names in the directory.
         """
         path = self._full_path(remote_dir)
         self.logger.info(f"Listing files in {path}")
-        return self._sftp.listdir(path) if self._sftp else self._client.nlst(path)
+        files = self._sftp.listdir(path) if self._sftp else self._client.nlst(path)
+
+        if pattern:
+            if pattern_type == "glob":
+                files = [f for f in files if fnmatch(f, pattern)]
+            elif pattern_type == "regex":
+                compiled = re.compile(pattern, re.IGNORECASE)
+                files = [f for f in files if compiled.search(os.path.basename(f))]
+            else:
+                self.logger.warning(f"Unknown pattern_type '{pattern_type}', skipping filter.")
+
+        return files
 
     def download_file(self, remote_path: str, local_path: str):
         """
@@ -134,6 +156,13 @@ class FTPConnection:
         """
         rpath = self._full_path(remote_path)
         self.logger.info(f"Downloading {rpath} to {local_path}")
+
+        # Normalize slashes
+        local_path = local_path.replace("\\", "/")
+
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+
         if self._sftp:
             self._sftp.get(rpath, local_path)
         else:
@@ -149,7 +178,7 @@ class FTPConnection:
         """
         src = self._full_path(src_path)
         dest = self._full_path(dest_path)
-        self.logger.info(f"Moving {src} → {dest}")
+        self.logger.info(f"Moving '{src}' -> '{dest}'")
         if self._sftp:
             self._sftp.rename(src, dest)
         else:
@@ -183,6 +212,71 @@ class FTPConnection:
         except Exception as e:
             self.logger.warning(f"Connection check failed: {e}")
             return False
+
+    def exists(self, remote_path: str) -> bool:
+        """
+        Checks whether a file or folder exists at the given remote path.
+
+        :param remote_path: Full remote path to check.
+        :return: True if it exists, False otherwise.
+        """
+        path = self._full_path(remote_path)
+        try:
+            if self._sftp:
+                self._sftp.stat(path)
+            else:
+                self._client.size(path)  # Will raise error if file doesn't exist
+            return True
+        except Exception:
+            return False
+
+    def ensure_dir(self, remote_path: str) -> None:
+        """
+        Ensures that the given remote directory path exists by creating any missing folders.
+        Restores the original working directory after the operation.
+
+        :param remote_path: Remote path that may include a filename — only folders will be created.
+        """
+        # Normalize slashes and remove filename
+        path = self._full_path(remote_path).replace("\\", "/")
+        dir_path = posixpath.dirname(path) if not path.endswith("/") else path
+        parts = dir_path.strip("/").split("/")
+
+        # Capture original working directory
+        try:
+            original_dir = self._sftp.getcwd() if self._sftp else self._client.pwd()
+        except Exception as e:
+            self.logger.warning(f"Could not determine current working directory: {e}")
+            original_dir = None
+
+        try:
+            for part in parts:
+                try:
+                    if self._sftp:
+                        self._sftp.chdir(part)
+                    else:
+                        self._client.cwd(part)
+                except Exception:
+                    try:
+                        if self._sftp:
+                            self._sftp.mkdir(part)
+                            self._sftp.chdir(part)
+                        else:
+                            self._client.mkd(part)
+                            self._client.cwd(part)
+                    except Exception as e:
+                        self.logger.warning(f"Failed to create or enter directory '{part}': {e}")
+                        raise
+        finally:
+            # Change back to original working directory
+            try:
+                if original_dir:
+                    if self._sftp:
+                        self._sftp.chdir(original_dir)
+                    else:
+                        self._client.cwd(original_dir)
+            except Exception as e:
+                self.logger.warning(f"Could not restore working directory to '{original_dir}': {e}")
 
     def close(self):
         """

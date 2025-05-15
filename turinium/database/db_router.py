@@ -34,7 +34,7 @@ class DBRouter:
         return db_name in cls._connections
 
     @classmethod
-    def execute_query(cls, db_name, query_type, query, params=(), ret_type="default"):
+    def execute_query(cls, db_name, query_type, query, params=(), params_types=(), ret_type="default"):
         """
         Execute a stored procedure or function on the specified database.
 
@@ -42,6 +42,7 @@ class DBRouter:
         :param query_type: Type of query ("sp" for stored procedure, "fn" for function).
         :param query: The stored procedure or function name.
         :param params: Parameters to pass.
+        :param params_types: Parameters to pass.
         :param ret_type: "pandas" for DataFrame, otherwise default.
         :return: (success, result)
         """
@@ -50,7 +51,7 @@ class DBRouter:
             return False, None
 
         connection = cls._connections[db_name]
-        return connection.execute(query_type, query, params, ret_type=ret_type)
+        return connection.execute(query_type, query, params, params_types, ret_type)
 
     @classmethod
     def close_connection(cls, db_name):

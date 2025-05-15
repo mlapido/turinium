@@ -38,13 +38,14 @@ dependencies = [
   "toml",
   "python-dotenv",
   "colorlog",
-  "sqlalchemy"
+  "sqlalchemy",
+  "paramiko"
 ]
 
 [project.optional-dependencies]
-database_odbc = ["sqlalchemy", "pyodbc"]
-database_pg = ["sqlalchemy", "psycopg2-binary"]
-database_all = ["sqlalchemy", "pyodbc", "psycopg2-binary"]
+database_odbc = ["sqlalchemy", "pyodbc", "pandas"]
+database_pg = ["sqlalchemy", "psycopg2-binary", "pandas"]
+database_all = ["sqlalchemy", "pyodbc", "psycopg2-binary", "pandas"]
 cli = ["click"]
 testing = ["pytest", "pytest-cov"]
 dev = ["black", "flake8", "mypy"]

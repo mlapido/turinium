@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict
+from typing import List, Optional
 
 
 class BaseDataSource(ABC):
@@ -14,12 +14,14 @@ class BaseDataSource(ABC):
         pass
 
     @abstractmethod
-    def list_files(self, remote_dir: str) -> List[str]:
+    def list_files(self, remote_dir: str, pattern: Optional[str] = None, pattern_type: str = "regex") -> List[str]:
         """
-        Lists all files in a given directory.
+        Lists files in the given remote directory, optionally filtered by a pattern.
 
-        :param remote_dir: Path to directory on the remote system.
-        :return: A list of filenames (no full paths).
+        :param remote_dir: Directory to list.
+        :param pattern: Pattern to filter file names.
+        :param pattern_type: Either 'regex' or 'glob'. Default is 'regex'.
+        :return: Filtered list of file names.
         """
         pass
 
@@ -60,6 +62,24 @@ class BaseDataSource(ABC):
         :return: True if responsive, False otherwise.
         """
         pass
+
+    def ensure_dir(self, remote_path: str) -> None:
+        """
+        Ensures the specified directory exists on the remote system.
+
+        :param remote_path: Remote directory path to ensure.
+        """
+        # Optional override
+        pass
+
+    def exists(self, remote_path: str) -> bool:
+        """
+        Checks if the specified path exists on the remote system.
+
+        :param remote_path: Path to check.
+        :return: True if it exists, False otherwise.
+        """
+        return False
 
     def close(self) -> None:
         """Closes the connection, if applicable."""

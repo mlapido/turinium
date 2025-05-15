@@ -23,13 +23,32 @@ class DataSourceServices:
     }
 
     @classmethod
+    def auto_register(cls):
+        """
+        Automatically register data sources from configuration using AppConfig.
+          AppConfig MUST have been initialized as shared before calling this method.
+        """
+        from turinium.config import SharedAppConfig
+
+        if SharedAppConfig.is_initialized():
+            app_config = SharedAppConfig()
+            sources = app_config.get_config_block('sources')
+
+            if sources:
+                cls.register_sources(sources)
+            else:
+                cls._logger.info(f"No data sources configurations found to register, skipping.")
+        else:
+            cls._logger.info(f"Couldn't auto register no instance of AppConfig found.")
+
+    @classmethod
     def register_sources(cls, sources_dict: Dict[str, Dict[str, Any]]):
         """
         Registers source configurations from a config block.
 
         Expected structure:
         {
-            "LEBES": {
+            "FTP": {
                 "source_type": "FTP",
                 "host": "...",
                 "port": 21,
@@ -40,13 +59,13 @@ class DataSourceServices:
         }
         """
         for name, data in sources_dict.items():
-            source_type = data.get("source_type")
+            source_type = data.get('source_type')
             if not source_type:
                 cls._logger.warning(f"Skipping source '{name}' — missing 'source_type'")
                 continue
             cls._sources[name] = {
                 "type": source_type.upper(),
-                "config": data
+                "config": {k: v for k, v in data.items() if k != 'source_type'}
             }
             cls._logger.info(f"Registered source '{name}' of type '{source_type.upper()}'")
 
@@ -61,15 +80,15 @@ class DataSourceServices:
         if name not in cls._sources:
             raise ValueError(f"Source '{name}' is not registered")
 
-        entry = cls._sources[name]
-        source_type = entry["type"]
-        config = entry["config"]
+        source = cls._sources[name]
+        source_type = source['type']
+        source_config = source['config']
 
         if source_type not in cls._source_types:
             raise ValueError(f"Unsupported source_type '{source_type}' for source '{name}'")
 
         if source_type == "FTP":
-            creds = FTPCredentials(name=name, **config)
+            creds = FTPCredentials(name=name, **source_config)
             return FTPDataSource(creds)
 
         raise RuntimeError(f"No handler implemented for source_type: {source_type}")

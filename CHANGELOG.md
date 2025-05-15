@@ -7,15 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
-
-### Added
-- .
-
-### Changed
-- .
-
----
 
 ## [0.2.0] - 2025-05-11
 
@@ -23,20 +14,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [AppConfig] `SharedAppConfig` factory class for managing and caching shared `AppConfig` instances based on normalized `config_files` and `env_file` arguments.
 - [AppConfig] Support for passing a directory as `config_files`, automatically loading all files with supported extensions (`.json`, `.toml`, `.yaml`, `.yml`).
 - [AppConfig] Support for passing a list containing paths to files and/or directories as `config_files`.
-- [DBServices] Support for automatic registration of databases and services in `DBServices`via the `auto_register()` class method.
-- [DBServices] Added support for executing a registered service across multiple rows (from a DataFrame or list) via the new `exec_service_batch` method, with optional `stop_on_fail` behavior configurable per call or via service config.
-- [DataSourceServices:NEW] Supoport for handling different data sources like FTP, S3, FileSystem, and others. At this time only FTP is implemented.
-- [DataSourceServices:NEW] `FTPCredentials` dataclass to hold connection info to a FTP server.
-- [DataSourceServices:NEW] `FTPConnection` class to handle the connection to a FTP server.
-- [DataSourceServices:NEW] `FTPDataSource` class that implements a FTP server as a data source.
-- [DataSourceServices:NEW] `BaseDataSource` base class to implement data sources.
+- [DBServices] Support for automatic registration of databases and services via the `auto_register()` class method.
+- [DBServices] Added `exec_service_batch` method for executing a registered service across multiple rows (from a DataFrame or list), with optional `stop_on_fail` behavior configurable per call or via service config.
+- [DataSourceServices:NEW] Support for handling different data sources like FTP, S3, FileSystem, and others. At this time, only FTP is implemented.
+- [DataSourceServices:NEW] `FTPCredentials` dataclass to hold connection info to an FTP server.
+- [DataSourceServices:NEW] `FTPConnection` class to manage FTP connections.
+- [DataSourceServices:NEW] `FTPDataSource` class to handle FTP servers as data sources.
+- [DataSourceServices:NEW] `BaseDataSource` abstract base class for implementing data sources.
+- [DataSource] Added `ensure_dir()` and `folder_exists()` methods to create folders if missing and check for their existence.
+- [DataSource] Enhanced `list_files()` method to support optional file filtering via pattern matching.
+- [DataSourceServices] Now supports auto-registering its configuration using `SharedAppConfig`.
 
 ### Changed
 - [AppConfig] Improved `_resolve_config_files()` to validate config extensions and normalize inputs to absolute `Path` objects.
 - [AppConfig] Updated all docstrings in `AppConfig` and `SharedAppConfig` to align with project-wide Sphinx-style documentation guidelines.
+- [DBServices] Replaced the config tags `"sp"` and `"fn"` with a unified `"routine"` tag for consistency.
+- [Project Structure] Some `__init__.py` entries were corrected.
+- [Project Structure] `SharedAppConfig` moved to its own dedicated file.
 
 ### Removed
-- None.
+- [Loaders] The `loaders` module has been abandoned and removed from the project.
 
 ---
 
