@@ -3,9 +3,10 @@ import json
 import toml
 import yaml
 import argparse
-from pathlib import Path
-from dotenv import load_dotenv
 import re
+
+from dotenv import load_dotenv
+from pathlib import Path
 
 
 class AppConfig:
@@ -14,26 +15,27 @@ class AppConfig:
     and command-line arguments. It can also merge multiple config files if a list of paths
     is provided.
 
-    .. note::
-        This class does **not** enforce a singleton pattern. If you desire a single global
-        instance, define it once (e.g., as a global variable in your project) and reuse it.
+    It supports loading from a single file, a list of files, or a folder containing supported
+    config files. Environment variables are loaded from a .env file (if present), and any
+    placeholders in the config (e.g. %%VAR_NAME%%) are resolved. Command-line arguments can
+    also be parsed and injected based on definitions within the config.
 
-    :param config_files: A single file path (str) or a list of file paths (list[str]) to load.
-        If not provided, it raises FileNotFoundError if no `config.ext` is found in the
-        current directory.
-    :type config_files: str or list[str], optional
-    :param env_file: Path to an optional .env file for environment variables, defaults to ".env".
-    :type env_file: str, optional
+    Supported extensions: .json, .toml, .yaml, .yml
     """
 
     def __init__(self, config_files=None, env_file=None):
         """
         Constructor for AppConfig. Loads configuration from the specified files (or auto-detected
-        `config.ext`), then loads environment variables, replaces environment placeholders, and
-        finally parses any command-line arguments defined in the config.
+        `config.ext`), then loads environment variables, resolves placeholders, and parses any
+        command-line arguments defined in the config.
 
-        :raises FileNotFoundError: If no config file is found or specified.
-        :raises ValueError: If any provided config file has an unsupported format or parsing error.
+        :param config_files: A file path, a directory path, or a list of either.
+        :type config_files: str | Path | list[str | Path], optional
+        :param env_file: Path to an optional .env file, defaults to ".env".
+        :type env_file: str | Path, optional
+
+        :raises FileNotFoundError: If no config files are found or valid.
+        :raises ValueError: If a file has an unsupported extension or parsing fails.
         """
         self.config_data = {}
         self.config_files = self._resolve_config_files(config_files)
@@ -46,37 +48,52 @@ class AppConfig:
 
     def _resolve_config_files(self, config_files):
         """
-        Resolves the config files to load. If `config_files` is:
-        - A string: load that single file.
-        - A list of strings: load and merge all those files.
-        - None: auto-detect `config.json|toml|yaml|yml` in the current directory.
+        Resolves the config files to load, validating extensions and flattening directories if needed.
 
-        :param config_files: Optional config file(s) to load.
-        :type config_files: str or list[str], optional
-        :return: A list of resolved Path objects to be loaded.
+        :param config_files: Input path(s) from constructor (file, folder, or list).
+        :type config_files: str | Path | list[str | Path] | None
+
+        :return: A list of Path objects pointing to config files to be loaded.
         :rtype: list[Path]
-        :raises FileNotFoundError: If no config files are found in any scenario.
+
+        :raises FileNotFoundError: If no valid config files are found.
+        :raises ValueError: If a file has an unsupported extension.
         """
-        if isinstance(config_files, str):
-            # Single file path
-            files = [Path(config_files)]
-        elif isinstance(config_files, list):
-            # List of file paths
-            files = [Path(cf) for cf in config_files]
-        else:
-            # Auto-detect config.ext in current directory
-            exts = ["json", "toml", "yml", "yaml"]
-            detected = []
+        exts = {'.json', '.toml', '.yml', '.yaml'}
+        resolved_files = []
+
+        def valid_config_file(path: Path):
+            return path.is_file() and path.suffix.lower() in exts
+
+        def scan_and_add(pathlike):
+            path = Path(pathlike).resolve()
+            if path.is_dir():
+                for child in sorted(path.iterdir()):
+                    if valid_config_file(child):
+                        resolved_files.append(child)
+            elif valid_config_file(path):
+                resolved_files.append(path)
+            else:
+                raise ValueError(f"Unsupported config file or path: {path}")
+
+        if config_files is None:
+            # auto-detect in current directory
             for ext in exts:
-                candidate = Path.cwd() / f"config.{ext}"
+                candidate = Path.cwd() / f"config{ext}"
                 if candidate.exists():
-                    detected.append(candidate)
-            files = detected
+                    resolved_files.append(candidate.resolve())
+        elif isinstance(config_files, (str, Path)):
+            scan_and_add(config_files)
+        elif isinstance(config_files, list):
+            for item in config_files:
+                scan_and_add(item)
+        else:
+            raise TypeError("config_files must be a path, list of paths, or None")
 
-        if not files:
-            raise FileNotFoundError("No configuration file(s) found or specified.")
-        return files
+        if not resolved_files:
+            raise FileNotFoundError("No configuration file(s) found or valid.")
 
+        return resolved_files
     def _load_config_from_files(self):
         """
         Iterates over all resolved config files, loading and merging them into `self.config_data`.

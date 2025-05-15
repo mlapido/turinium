@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "turinium"
-version = "0.1.1"
+version = "0.2.0"
 description = "Turinium is a Python framework designed to streamline software development by reducing boilerplate code and providing utility functions for database connections, logging, error handling, and configuration management."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -38,13 +38,14 @@ dependencies = [
   "toml",
   "python-dotenv",
   "colorlog",
-  "sqlalchemy"
+  "sqlalchemy",
+  "paramiko"
 ]
 
 [project.optional-dependencies]
-database_odbc = ["sqlalchemy", "pyodbc"]
-database_pg = ["sqlalchemy", "psycopg2-binary"]
-database_all = ["sqlalchemy", "pyodbc", "psycopg2-binary"]
+database_odbc = ["sqlalchemy", "pyodbc", "pandas"]
+database_pg = ["sqlalchemy", "psycopg2-binary", "pandas"]
+database_all = ["sqlalchemy", "pyodbc", "psycopg2-binary", "pandas"]
 cli = ["click"]
 testing = ["pytest", "pytest-cov"]
 dev = ["black", "flake8", "mypy"]
