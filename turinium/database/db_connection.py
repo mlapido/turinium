@@ -50,15 +50,15 @@ class DBConnection:
         """
         start_time = time.time()
         try:
-            with self.engine.connect() as connection:
+            with self.engine.begin() as connection:
                 sql_query, param_dict = self._build_query(query_type, query, params, param_types, ret_type)
 
-                self.logger.info(f"Executing {query_type.upper()}: {sql_query}")
-                self.logger.debug(f"With parameters: {param_dict}")
+                #self.logger.info(f"Executing {query_type.upper()}: {sql_query}")
+                #self.logger.debug(f"With parameters: {param_dict}")
 
                 if ret_type == "pandas":
                     result = pd.read_sql(sql_query, connection, params=param_dict)
-                    self._log_timing(query, start_time)
+                    #self._log_timing(query, start_time)
                     return True, result
 
                 result = connection.execute(sql_query, param_dict)
@@ -66,16 +66,30 @@ class DBConnection:
                     fetched = result.fetchall()
                     if ret_type == "out":
                         # Return first column of first row
-                        self._log_timing(query, start_time)
+                        #self._log_timing(query, start_time)
                         return True, fetched[0][0] if fetched else None
-                    self._log_timing(query, start_time)
+                    #self._log_timing(query, start_time)
                     return True, fetched
 
-                self._log_timing(query, start_time)
+                #self._log_timing(query, start_time)
                 return True, None
 
         except Exception as e:
-            self.logger.error(f"Error executing {query_type}: {query} -> {e}", exc_info=True)
+            from sqlalchemy.exc import IntegrityError
+            from psycopg2.errors import ForeignKeyViolation
+
+            orig = getattr(e, 'orig', None)
+            if isinstance(orig, ForeignKeyViolation):
+                detail = str(orig).split('DETAIL:')[-1].strip() if 'DETAIL:' in str(orig) else str(orig)
+                friendly_msg = f"Foreign key violation: likely due to a missing related row. {detail}"
+                self.logger.error(f"Error executing {query_type}: {query} -> {friendly_msg}", exc_info=False)
+                return False, None
+
+            if isinstance(e, IntegrityError):
+                self.logger.error(f"Integrity error executing {query_type}: {query} -> {e}", exc_info=False)
+            else:
+                self.logger.error(f"Error executing {query_type}: {query} -> {e}", exc_info=False)
+
             return False, None
 
     def _build_query(self, query_type: str, query: str, params: Tuple[Any, ...],
