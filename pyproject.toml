@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "turinium"
-version = "0.2.0"
+version = "0.2.1"
 description = "Turinium is a Python framework designed to streamline software development by reducing boilerplate code and providing utility functions for database connections, logging, error handling, and configuration management."
 readme = "README.md"
 requires-python = ">=3.8"

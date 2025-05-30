@@ -1,11 +1,14 @@
+import time
 import pandas as pd
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from typing import Any, List, Tuple, Dict, Optional, Union
-import time
 
 from .db_credentials import DBCredentials
 from turinium.logging import TLogging
+from sqlalchemy.exc import IntegrityError
+from psycopg2.errors import ForeignKeyViolation
 
 
 class DBConnection:
@@ -75,18 +78,14 @@ class DBConnection:
                 return True, None
 
         except Exception as e:
-            from sqlalchemy.exc import IntegrityError
-            from psycopg2.errors import ForeignKeyViolation
-
             orig = getattr(e, 'orig', None)
+            args = orig.args if orig else ()
             if isinstance(orig, ForeignKeyViolation):
-                detail = str(orig).split('DETAIL:')[-1].strip() if 'DETAIL:' in str(orig) else str(orig)
-                friendly_msg = f"Foreign key violation: likely due to a missing related row. {detail}"
-                self.logger.error(f"Error executing {query_type}: {query} -> {friendly_msg}", exc_info=False)
-                return False, None
-
-            if isinstance(e, IntegrityError):
-                self.logger.error(f"Integrity error executing {query_type}: {query} -> {e}", exc_info=False)
+                full_msg = self._extract_pg_error_message(args)
+                self.logger.error(f"Foreign key violation executing {query_type}: {query} -> {full_msg}", exc_info=False)
+            elif isinstance(e, IntegrityError):
+                full_msg = self._extract_pg_error_message(args)
+                self.logger.error(f"Integrity error executing {query_type}: {query} -> {full_msg}", exc_info=False)
             else:
                 self.logger.error(f"Error executing {query_type}: {query} -> {e}", exc_info=False)
 
@@ -143,6 +142,28 @@ class DBConnection:
             else:
                 casted[key] = value  # Pass through as-is
         return casted
+
+    def _extract_pg_error_message(self, e_info:tuple) -> str:
+        """
+        Extracts and formats a complete error message from a PostgreSQL-related exception.
+
+        :param e_info: Tuple with the original exception info.
+        :return: A formatted message string.
+        """
+        if len(e_info) > 0:
+            error_text = e_info[0]
+            lines = error_text.splitlines()
+            friendly_msg = lines[0]
+            detail_msg = ""
+
+            for line in lines[1:]:
+                if line.startswith("DETAIL:"):
+                    detail_msg = line.replace("DETAIL:", "", 1).strip()
+                    break
+
+            return f"{friendly_msg} : {detail_msg}" if detail_msg else friendly_msg
+
+        return str(exc)
 
     def _log_timing(self, query: str, start_time: float) -> None:
         """
