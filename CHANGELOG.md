@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 
+## [0.2.1] - 2025-05-24
+
+### Changed
+- [DBServices] Improved database writing issues handling by catching exceptions on integrity and foreign key violations.
+
+---
+
 ## [0.2.0] - 2025-05-11
 
 ### Added

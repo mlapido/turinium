@@ -1,11 +1,14 @@
+import time
 import pandas as pd
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from typing import Any, List, Tuple, Dict, Optional, Union
-import time
 
 from .db_credentials import DBCredentials
 from turinium.logging import TLogging
+from sqlalchemy.exc import IntegrityError
+from psycopg2.errors import ForeignKeyViolation
 
 
 class DBConnection:
@@ -50,15 +53,15 @@ class DBConnection:
         """
         start_time = time.time()
         try:
-            with self.engine.connect() as connection:
+            with self.engine.begin() as connection:
                 sql_query, param_dict = self._build_query(query_type, query, params, param_types, ret_type)
 
-                self.logger.info(f"Executing {query_type.upper()}: {sql_query}")
-                self.logger.debug(f"With parameters: {param_dict}")
+                #self.logger.info(f"Executing {query_type.upper()}: {sql_query}")
+                #self.logger.debug(f"With parameters: {param_dict}")
 
                 if ret_type == "pandas":
                     result = pd.read_sql(sql_query, connection, params=param_dict)
-                    self._log_timing(query, start_time)
+                    #self._log_timing(query, start_time)
                     return True, result
 
                 result = connection.execute(sql_query, param_dict)
@@ -66,16 +69,26 @@ class DBConnection:
                     fetched = result.fetchall()
                     if ret_type == "out":
                         # Return first column of first row
-                        self._log_timing(query, start_time)
+                        #self._log_timing(query, start_time)
                         return True, fetched[0][0] if fetched else None
-                    self._log_timing(query, start_time)
+                    #self._log_timing(query, start_time)
                     return True, fetched
 
-                self._log_timing(query, start_time)
+                #self._log_timing(query, start_time)
                 return True, None
 
         except Exception as e:
-            self.logger.error(f"Error executing {query_type}: {query} -> {e}", exc_info=True)
+            orig = getattr(e, 'orig', None)
+            args = orig.args if orig else ()
+            if isinstance(orig, ForeignKeyViolation):
+                full_msg = self._extract_pg_error_message(args)
+                self.logger.error(f"Foreign key violation executing {query_type}: {query} -> {full_msg}", exc_info=False)
+            elif isinstance(e, IntegrityError):
+                full_msg = self._extract_pg_error_message(args)
+                self.logger.error(f"Integrity error executing {query_type}: {query} -> {full_msg}", exc_info=False)
+            else:
+                self.logger.error(f"Error executing {query_type}: {query} -> {e}", exc_info=False)
+
             return False, None
 
     def _build_query(self, query_type: str, query: str, params: Tuple[Any, ...],
@@ -129,6 +142,28 @@ class DBConnection:
             else:
                 casted[key] = value  # Pass through as-is
         return casted
+
+    def _extract_pg_error_message(self, e_info:tuple) -> str:
+        """
+        Extracts and formats a complete error message from a PostgreSQL-related exception.
+
+        :param e_info: Tuple with the original exception info.
+        :return: A formatted message string.
+        """
+        if len(e_info) > 0:
+            error_text = e_info[0]
+            lines = error_text.splitlines()
+            friendly_msg = lines[0]
+            detail_msg = ""
+
+            for line in lines[1:]:
+                if line.startswith("DETAIL:"):
+                    detail_msg = line.replace("DETAIL:", "", 1).strip()
+                    break
+
+            return f"{friendly_msg} : {detail_msg}" if detail_msg else friendly_msg
+
+        return str(exc)
 
     def _log_timing(self, query: str, start_time: float) -> None:
         """

@@ -1,8 +1,11 @@
 import pandas as pd
+import time
+
 from typing import Any, Dict, Optional, Tuple, Union
 from turinium.database.db_router import DBRouter
 from turinium.logging import TLogging
 from dataclasses import is_dataclass
+
 
 class DBServices:
     """
@@ -170,17 +173,37 @@ class DBServices:
             cls._logger.error("batch_data must be a DataFrame or a list of rows.")
             return False, []
 
+        total_rows = len(batch_data)
+        row_blocks = total_rows // 100 + 1
+        failure_count = 0
+        start_time = time.time()
         for i, row in enumerate(rows):
             params = (row,) if not isinstance(row, (tuple, list)) else tuple(row)
             success, result = cls.exec_service(service_name, params=params, close_connection=False)
 
             if success:
-                cls._logger.info(f"[{service_name}][Row {i}] Success.")
+                is_checkpoint = (row_blocks > 1 and i % row_blocks == 0) or (i == total_rows - 1)
+
+                if is_checkpoint:
+                    elapsed = cls._format_elapsed(time.time() - start_time)
+                    progress_msg = (
+                        f"[{service_name}] {i + 1} rows processed "
+                        f"({i / (total_rows - 1):.2%})"
+                    )
+                    if failure_count > 0:
+                        progress_msg += f" | Failures: {failure_count}"
+                    progress_msg += f" | Elapsed time: {elapsed}"
+                    cls._logger.info(progress_msg)
+
+                elif row_blocks <= 1:
+                    cls._logger.info(f"[{service_name}] Row {i + 1} processed successfully.")
+
             else:
-                cls._logger.error(f"[{service_name}][Row {i}] Failed. Params: {params}")
+                cls._logger.error(f"[{service_name}] Row {i + 1} failed. Params: {params}")
+                failure_count += 1
                 all_success = False
                 if effective_stop_on_fail:
-                    cls._logger.warning("Batch execution stopped due to failure.")
+                    cls._logger.warning(f"[{service_name}] Batch execution halted due to failure.")
                     break
 
             results.append(result)
@@ -191,3 +214,17 @@ class DBServices:
                 DBRouter.close_connection(db_name)
 
         return all_success, results
+
+    @classmethod
+    def _format_elapsed(cls, seconds: float) -> str:
+        """Returns elapsed time as a string like '1h:23m:15s' or '2m:10s' or '45s'."""
+        seconds = int(seconds)
+        h, rem = divmod(seconds, 3600)
+        m, s = divmod(rem, 60)
+
+        if h:
+            return f"{h}h:{m:02d}m:{s:02d}s"
+        elif m:
+            return f"{m}m:{s:02d}s"
+        else:
+            return f"{s}s"
