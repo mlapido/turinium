@@ -1,0 +1,49 @@
+{
+  "storages_services": {
+    "FTP-FFC": {
+      "host": "%%DSRC_FFCFTP_SERVER%%",
+      "port": 21,
+      "username": "%%DSRC_FFCFTP_USER%%",
+      "password": "%%DSRC_FFCFTP_PASS%%",
+      "protocol": "ftp",
+      "passive": true,
+      "base_dir": "/teste"
+    },
+    "SFTP-BIG": {
+      "host": "%%DSRC_BIGSFTP_SERVER%%",
+      "port": 21,
+      "username": "%%DSRC_BIGSFTP_USER%%",
+      "password": "%%DSRC_BIGSFTP_PASS%%",
+      "protocol": "sftp",
+      "passive": true,
+      "base_dir": "/ffc"
+    },
+    "S3-FFC": {
+      "protocol": "s3",
+      "access_key": "%%STRG_FFCS3_KEY%%",
+      "secret_key": "%%STRG_FFCS3_SECRET%%",
+      "region": "us-east-1",
+      "bucket": "ffc_importacao",
+      "base_dir": "vendas"
+    },
+    "MSOD-FFC": {
+      "protocol": "onedrive",
+      "client_id": "%%STRG_FFCMSOD_CID%%",
+      "client_secret": "%%STRG_FFCMSOD_SECRET",
+      "tenant_id": "tenant",
+      "refresh_token": "%%STRG_FFCMSOD_RTOKEN%%",
+      "base_dir": "/data"
+    },
+    "LOCAL-NAS": {
+      "protocol": "local",
+      "base_path": "/mnt/nas/Base de dados FFC"
+    },
+    "GDRIVE-FFC": {
+      "protocol": "gdrive",
+      "credentials_path": "../secrets/credentials.json",
+      "token_path": "./token.json",
+      "base_dir": "vendas",
+      "": "tsa-531@turinium-storage-access.iam.gserviceaccount.com"
+    }
+  }
+}

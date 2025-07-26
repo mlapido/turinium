@@ -11,7 +11,7 @@ Author: Milton Lapido
 License: MIT
 """
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 # Configuration Management
 from .config import AppConfig, SharedAppConfig
@@ -19,8 +19,11 @@ from .config import AppConfig, SharedAppConfig
 # Database Services
 from .database import DBRouter, DBConnection, DBCredentials, DBServices
 
-# Data Sources Services
+# Data Sources Services - deprecated
 from .datasources import FTPCredentials, FTPConnection, DataSourceServices
+
+# Storage Services - Replaces Data Sources Services
+from .storage import StorageServices
 
 # Email
 from .email import EmailSender

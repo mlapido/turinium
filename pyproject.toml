@@ -4,14 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "turinium"
-version = "0.2.1"
+version = "0.3.0"
 description = "Turinium is a Python framework designed to streamline software development by reducing boilerplate code and providing utility functions for database connections, logging, error handling, and configuration management."
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
+
 authors = [
   { name = "Milton Lapido", email = "milton.lapido@gmail.com" }
 ]
+
 keywords = [
   "software development",
   "utilities",
@@ -20,6 +22,7 @@ keywords = [
   "configuration",
   "python framework"
 ]
+
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
@@ -33,13 +36,20 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Python Modules"
 ]
+
 dependencies = [
   "pyyaml",
   "toml",
   "python-dotenv",
   "colorlog",
   "sqlalchemy",
-  "paramiko"
+  "paramiko",
+  "google-api-python-client>=2.125.0",
+  "google-auth>=2.29.0",
+  "google-auth-httplib2>=0.2.0",
+  "google-auth-oauthlib>=1.2.0",
+  "msal>=1.28.0",
+  "requests>=2.31.0"
 ]
 
 [project.optional-dependencies]
@@ -49,7 +59,13 @@ database_all = ["sqlalchemy", "pyodbc", "psycopg2-binary", "pandas"]
 cli = ["click"]
 testing = ["pytest", "pytest-cov"]
 dev = ["black", "flake8", "mypy"]
-
+dev_all = ["sqlalchemy", "pyodbc", "psycopg2-binary", "pandas",
+           "google-api-python-client>=2.125.0", "google-auth>=2.29.0", "google-auth-httplib2>=0.2.0", "google-auth-oauthlib>=1.2.0",
+           "msal>=1.28.0", "requests>=2.31.0",
+           "click",
+           "pytest", "pytest-cov",
+           "black", "flake8", "mypy"
+]
 [tool.setuptools]
 include-package-data = true
 
