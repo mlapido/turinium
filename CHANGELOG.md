@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.2] - Unreleased
+
+### Added
+- [AppConfig] Support for `.json5` configuration files using the `json5` package.
+- [AppConfig] When both `.json` and `.json5` files exist with the same name, `.json5` is prioritized and `.json` is ignored.
+- [AppConfig] New feature to automatically instantiate dataclass objects from blocks that declare a `to_dataclass` property.
+- [AppConfig] Recursive resolution of `to_dataclass` entries within nested config blocks in `AppConfig`.
+- [AppConfig] Support for resolving lists of dataclasses via the `to_dataclass_list` and `list` keys.
+- [AppConfig] Added `get_config_class(block_name)` method to retrieve the instantiated dataclass for a given configuration block.
+- [AppConfig] Added error handling with specific exceptions:
+  - `MissingDataClassError` is raised when a referenced dataclass cannot be imported.
+  - `DataClassInstantiationError` is raised when a dataclass cannot be instantiated due to missing or invalid arguments.
+- [Tests] Introduced unit tests for the `AppConfig` module covering JSON5 support and `to_dataclass` and `to_dataclass_list` functionality.
+
+### Changed
+- [AppConfig] Updated `_resolve_config_files()` to prioritize `.json5` over `.json` and filter out duplicate base names.
+- [AppConfig] Updated `_parse_config_file()` to support `.json5` and improved its docstring accordingly.
+- [AppConfig] Updated `_load_config_from_files()` to resolve dataclasses immediately after loading.
+- [AppConfig] All relevant docstrings updated to reflect new capabilities and Sphinx-style documentation guidelines.
+
+---
 
 ## [0.2.1] - 2025-05-24
 
@@ -63,7 +84,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - None.
 
 ---
-
-<!-- Links for version comparison (optional) -->
-[Unreleased]: https://bitbucket.org/your-org/turinium/compare/master...HEAD
-[1.0.0]: https://bitbucket.org/your-org/turinium/compare/v0.0.1...v1.0.0

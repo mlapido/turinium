@@ -1,0 +1,6 @@
+{
+  broken: {
+    to_dataclass: "app.domain.DoesNotExist",
+    some: "value"
+  }
+}

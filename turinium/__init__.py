@@ -11,10 +11,10 @@ Author: Milton Lapido
 License: MIT
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.2"
 
 # Configuration Management
-from .config import AppConfig, SharedAppConfig
+from .config import AppConfig, SharedAppConfig, MissingDataClassError, DataClassInstantiationError
 
 # Database Services
 from .database import DBRouter, DBConnection, DBCredentials, DBServices
@@ -28,4 +28,6 @@ from .email import EmailSender
 # Logging
 from .logging import TLogging
 
-__all__ = ["AppConfig", "SharedAppConfig", "DBRouter", "DBConnection", "DBCredentials", "DBServices", "EmailSender", "TLogging", "DataSourceServices", "FTPCredentials", "FTPConnection"]
+__all__ = ["AppConfig", "SharedAppConfig", "MissingDataClassError", "DataClassInstantiationError",
+           "DBRouter", "DBConnection", "DBCredentials", "DBServices", "EmailSender", "TLogging",
+           "DataSourceServices", "FTPCredentials", "FTPConnection"]
