@@ -17,7 +17,7 @@ __version__ = "0.2.2"
 from .config import AppConfig, SharedAppConfig, MissingDataClassError, DataClassInstantiationError
 
 # Database Services
-from .database import DBRouter, DBConnection, DBCredentials, DBServices
+from .database import DBConnection, DBCredentials, DBServices
 
 # Data Sources Services
 from .datasources import FTPCredentials, FTPConnection, DataSourceServices
@@ -29,5 +29,5 @@ from .email import EmailSender
 from .logging import TLogging
 
 __all__ = ["AppConfig", "SharedAppConfig", "MissingDataClassError", "DataClassInstantiationError",
-           "DBRouter", "DBConnection", "DBCredentials", "DBServices", "EmailSender", "TLogging",
+           "DBConnection", "DBCredentials", "DBServices", "EmailSender", "TLogging",
            "DataSourceServices", "FTPCredentials", "FTPConnection"]

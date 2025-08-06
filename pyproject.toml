@@ -44,12 +44,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-database_odbc = ["sqlalchemy", "pyodbc", "pandas"]
+database_odbc = ["sqlalchemy", "pyodbc", "difflib", "pandas"]
 database_pg = ["sqlalchemy", "psycopg2-binary", "pandas"]
-database_all = ["sqlalchemy", "pyodbc", "psycopg2-binary", "pandas"]
+database_all = ["sqlalchemy", "pyodbc", "psycopg2-binary", "difflib", "pandas"]
 cli = ["click"]
 testing = ["pytest", "pytest-cov"]
 dev = ["black", "flake8", "mypy"]
+docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mkdocs-awesome-pages-plugin",
+        "mkdocs-git-revision-date-localized-plugin", "mike"]
 
 [tool.setuptools]
 include-package-data = true

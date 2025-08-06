@@ -1,6 +1,12 @@
+from typing import Optional
 from .db_connection import DBConnection
 from .db_credentials import DBCredentials
 from turinium.logging import TLogging
+
+
+class MissingDatabaseConnectionError(Exception):
+    pass
+
 
 class DBRouter:
     """
@@ -22,6 +28,21 @@ class DBRouter:
             cls._connections[name] = DBConnection(credentials)
 
         cls._logger.info(f"Database connections initialized: {list(cls._connections.keys())}")
+
+    @classmethod
+    def get_connection(cls, db_name: str) -> Optional[DBConnection]:
+        """
+        Retrieves the DBConnection instance associated with the given database name.
+
+        :param db_name: Name of the database whose connection is requested.
+        :return: The DBConnection instance if it exists, or None if not found.
+        """
+        # Check if the requested database name exists in the router's connection pool
+        if db_name in cls._connections:
+            return cls._connections[db_name]
+
+        # Optionally log a warning or raise a custom exception here
+        return None
 
     @classmethod
     def has_connection(cls, db_name: str) -> bool:

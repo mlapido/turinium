@@ -1,7 +1,0 @@
-{
-  server: {
-    to_dataclass: "app.domain.ServerSettings",
-    host: "localhost"
-    // missing required 'port'
-  }
-}

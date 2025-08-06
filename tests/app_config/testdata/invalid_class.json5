@@ -1,0 +1,6 @@
+{
+  broken: {
+    to_dataclass: "tests.app_config.fixtures.domain.sample_classes.DoesNotExist",
+    some: "value"
+  }
+}
