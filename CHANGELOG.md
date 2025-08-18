@@ -7,6 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.2] - Unreleased
+
+### Added
+- [AppConfig] Support for `.json5` configuration files using the `json5` package.
+- [AppConfig] When both `.json` and `.json5` files exist with the same name, `.json5` is prioritized and `.json` is ignored.
+- [AppConfig] New feature to automatically instantiate dataclass objects from blocks that declare a `to_dataclass` property.
+- [AppConfig] Recursive resolution of `to_dataclass` entries within nested config blocks in `AppConfig`.
+- [AppConfig] Support for resolving lists of dataclasses via the `to_dataclass_list` and `list` keys.
+- [AppConfig] Added error handling with specific exceptions:
+  - `MissingDataClassError` is raised when a referenced dataclass cannot be imported.
+  - `DataClassInstantiationError` is raised when a dataclass cannot be instantiated due to missing or invalid arguments.
+- [Tests] Introduced unit tests for the `AppConfig` module covering JSON5 support and `to_dataclass` and `to_dataclass_list` functionality.
+- [Tests] Complete unit test suite for the revamped `database` module covering `DBConnection`, `DBServices`, service registration, error handling, and execution flow.
+- [DBServices] New `execute()` and `execute_batch()` methods introduced as unified entry points for running services (stored procedures, functions, or upsert operations). They support service type dispatching, batch handling, and optional execution time logging via the `log_duration` config flag.
+- [DBServices] Added support for a new service type `"query"` for executing raw SQL queries from `.sql` files. All `.sql` files must reside in a designated folder (e.g., `sql/` or `queries/`) to be discoverable and organized.
+- [DBServices] `log_duration` flag in the service config enables optional debug-level logging of execution duration per service call.
+- [DBServices] Support for service pre-validation at registration time (missing keys, unsupported types, etc.) with detailed exceptions:
+  - `InvalidServiceConfigError` for incomplete or malformed service declarations.
+  - `UnsupportedServiceTypeError` for unknown service types.
+  - `DatabaseNotRegisteredError` for references to non-registered database aliases.
+- [DBServices] Deprecated legacy methods `exec_service()` and `exec_service_batch()` are retained with warning messages for backward compatibility.
+- [DBCredentials] Introduced `_get_driver()` as a private method to resolve the SQL Server ODBC driver with a fallback to `"ODBC Driver 17 for SQL Server"` if not explicitly provided.
+- [DBConnection] Unified `execute()` method introduced to handle `sp`, `fn`, `query`, and `upsert` service types consistently.
+- [DBConnection] Support for `ret_type` in service definitions, allowing automatic return conversion to DataFrame or mapped dataclass instances.
+- [DBConnection] Optional `log_duration` per-service flag to log execution duration.
+- [DBConnection] Optional `service_config` parameter in `execute()` method, providing runtime access to extended metadata.
+- [DBConnection] Result mapping to dataclass lists when `ret_type` is a dataclass type.
+- [Docs] Introduced `docs/` folder with initial documentation structure using `MkDocs`.
+- [Docs] Added `index.md` and `intro.md` to provide an overview of the Turinium framework.
+- [Docs] Added `api.md` as a placeholder for future auto-generated API reference via `mkdocstrings`.
+- [Docs] Included `mkdocs.yml` configuration file to define site structure, theme, and plugin settings.
+
+### Changed
+- [AppConfig] `get_config_block(block_name)` method now retrieves the instantiated dataclass for a given configuration block.
+- [AppConfig] `_resolve_config_files()` now prioritizes `.json5` over `.json` and filters out duplicate base names.
+- [AppConfig] `_parse_config_file()` now supports `.json5` and improved its docstring accordingly.
+- [AppConfig] `_load_config_from_files()` now resolves dataclasses immediately after loading.
+- [AppConfig] All relevant docstrings updated to reflect new capabilities and Sphinx-style documentation guidelines.
+- [DBServices] Refactored and modularized internal logic for execution and batch processing. Moved core logic into `_execute_single()` and `_execute_batch()` internal methods.
+- [DBServices] Private attributes and helper methods are now consistently prefixed with `_`, following internal naming conventions.
+- [DBServices] Expanded and standardized all docstrings using Sphinx-style conventions, and added inline comments for maintainability and clarity.
+- [DBServices] All raised exceptions now provide clear contextual error messages, including service name and reason for failure when possible.
+- [DBCredentials] Improved internal logic in `get_connection_url()` to delegate SQL Server driver resolution to `_get_driver()` method.
+- [DBCredentials] Updated inline comments and docstrings for clarity and maintainability. Enforced consistent use of `Literal["sqlserver", "postgres"]` as an interim solution before migrating to Enums in a future version.
+- [DBConnection] Refactored dispatching logic to remove duplication across service type handlers (`sp`, `fn`, `query`, `upsert`).
+- [DBConnection] Improved error handling and execution fallback flow, returning `(False, None)` only on expected soft failures.
+- [DBConnection] All docstrings updated to follow Sphinx formatting and clarify the behavior of public methods and parameters.
+- README.md was updated to reflect the new features and changes.
+
+### Removed
+- [DBServices] Internal duplication of execution logic between single and batch service calls, replacing it with a shared dispatching mechanism.
+- [DBServices] Reliance on `Tuple[bool, Any]` returns in favor of raising precise exceptions for fatal issues, except when fallback `(False, None)` returns are appropriate (e.g., unknown service).
+- [DBServices] The `DBRouter` class; its responsibilities were merged into `DBServices` to simplify connection management.
+- [DBConnection] Removed legacy methods like `execute_sp()`, `execute_fn()`, and `execute_query()` in favor of unified `execute()`.
+- [DBConnection] Removed special casing for `"as_dataframe"` argument in favor of `ret_type`-based return mapping.
+
+---
 
 ## [0.2.1] - 2025-05-24
 
@@ -63,7 +120,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - None.
 
 ---
-
-<!-- Links for version comparison (optional) -->
-[Unreleased]: https://bitbucket.org/your-org/turinium/compare/master...HEAD
-[1.0.0]: https://bitbucket.org/your-org/turinium/compare/v0.0.1...v1.0.0

@@ -1,0 +1,15 @@
+{
+  wrapper: {
+    to_dataclass: "tests.app_config.fixtures.domain.sample_classes.WrapperBlock",
+    sub: {
+      to_dataclass: "tests.app_config.fixtures.domain.sample_classes.SubBlock",
+      name: "Outer",
+      age: 50,
+      nested: {
+        to_dataclass: "tests.app_config.fixtures.domain.sample_classes.SubBlock",
+        name: "Inner",
+        age: 25
+      }
+    }
+  }
+}

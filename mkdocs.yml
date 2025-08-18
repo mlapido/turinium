@@ -1,0 +1,79 @@
+site_name: Turinium
+site_description: "Turinium is a Python framework designed to streamline software development by reducing boilerplate code."
+site_url: https://your-github-username.github.io/turinium/
+repo_url: https://github.com/your-github-username/turinium
+repo_name: your-github-username/turinium
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  logo: assets/logo.png
+  favicon: assets/favicon.ico
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - header.autohide
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: red
+      accent: deep orange
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: red
+      accent: deep orange
+
+nav:
+  - Overview:
+      - Pitch: index.md
+      - Why Turinium?: why.md
+      - Features: features.md
+  - Guide:
+      - Getting Started: guide/getting-started.md
+      - Configuration: guide/configuration.md
+      - Usage Patterns: guide/usage.md
+  - Reference:
+      - API Reference: reference/index.md
+  - Community:
+      - Contributing: contributing.md
+      - Changelog: changelog.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - codehilite
+  - footnotes
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed
+  - pymdownx.emoji
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            show_source: true
+            docstring_style: sphinx
+  - mkdocs-git-revision-date-localized-plugin
+  - mkdocs-awesome-pages-plugin
+  - mike
+
+extra:
+  version:
+    provider: mike
