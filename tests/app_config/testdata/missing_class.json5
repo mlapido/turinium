@@ -1,0 +1,6 @@
+{
+  invalid: {
+    to_dataclass: "tests.app_config.fixtures.domain.sample_classes.DoesNotExist",
+    value: 42
+  }
+}
