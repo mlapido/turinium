@@ -8,9 +8,6 @@ from sqlalchemy.exc import IntegrityError
 
 from .db_credentials import DBCredentials
 from turinium.logging import TLogging
-from psycopg2.errors import ForeignKeyViolation
-from psycopg2.extras import execute_values
-from pyodbc import Error as ODBCError
 
 
 class DBConnection:
@@ -38,7 +35,7 @@ class DBConnection:
     Logging and error handling are integrated using the TLogging class.
     """
 
-    def __init__(self, credentials: DBCredentials, log_timing: bool = True):
+    def __init__(self, credentials: DBCredentials, log_timing: bool = False):
         """
         Initialize a database connection and setup logging and connection pooling.
 
@@ -105,7 +102,7 @@ class DBConnection:
         a full result set, or no result depending on the return mode.
 
         :param service_type: Either "sp" for stored procedure or "fn" for function.
-        :param query: Fully-qualified name of the routine (e.g., schema.proc_name).
+        :param query: Fully qualified name of the routine (e.g., schema.proc_name).
         :param params: Parameters to bind in positional order.
         :param param_types:  Type hints for casting (mainly used in PostgreSQL - optional).
         :param ret_type: Either "out" for scalar value, "pandas" for DataFrame, or "default".
@@ -117,7 +114,7 @@ class DBConnection:
 
         try:
             with self._engine.begin() as conn:
-                sql, bindings = self._build_query(service_type, routine, params, param_types, ret_type)
+                sql, bindings = self._build_query(service_type, routine, params, param_types)
 
                 if ret_type == "pandas":
                     result = pd.read_sql(sql, conn, params=bindings)
@@ -139,35 +136,44 @@ class DBConnection:
             return False, None
 
     def _build_query(self, service_type: str, routine: str, params: Tuple[Any, ...],
-                     param_types: Optional[Tuple[str, ...]] = None,
-                     ret_type: str = "default") -> Tuple[Any, Dict[str, Any]]:
+                     param_types: Optional[Tuple[str, ...]] = None) -> Tuple[Any, Dict[str, Any]]:
         """
         Builds the appropriate SQLAlchemy query and param dictionary.
 
-        :param service_type: One of 'sp' or 'fn'.
-        :param routine: Routine name.
-        :param params: Parameters to bind.
-        :param param_types: Optional type hints.
-        :param ret_type: 'default', 'out', or 'pandas'.
-        :return: SQL text query and parameter dictionary.
+        :param service_type: One of 'sp' (stored procedure) or 'fn' (function).
+        :param routine: Fully qualified name of the routine (e.g., 'schema.routine_name').
+        :param params: Tuple of parameters to bind to the routine.
+        :param param_types: Optional tuple of type hints for casting each parameter.
+        :return: A tuple containing the SQLAlchemy text query and the parameter dictionary.
         """
+        params = params or ()  # Ensure params is an empty tuple if None
+
         if param_types and len(param_types) != len(params):
             raise ValueError("param_types length does not match number of params.")
 
         db_type = self._credentials.db_type.lower()
         placeholders = ", ".join(f":param{i}" for i in range(len(params)))
-        param_dict = self._cast_params(params, param_types) if param_types else {
-            f"param{i}": val for i, val in enumerate(params)
-        }
+
+        if param_types:
+            param_dict = self._cast_params(params, param_types)
+        else:
+            param_dict = {f"param{i}": val for i, val in enumerate(params)}
 
         if db_type == "sqlserver":
-            return text(f"EXEC {routine} {placeholders}" if service_type == "sp"
-                        else f"SELECT {routine}({placeholders})"), param_dict
+            if service_type == "sp":
+                query = f"EXEC {routine}" + (f" {placeholders}" if placeholders else "")
+            else:
+                query = f"SELECT {routine}({placeholders})"
+        else:  # postgres or other
+            if service_type == "sp":
+                query = f"CALL {routine}({placeholders})"
+            else:
+                query = f"SELECT * FROM {routine}({placeholders})"
 
-        return text(f"CALL {routine}({placeholders})" if service_type == "sp"
-                    else f"SELECT * FROM {routine}({placeholders})"), param_dict
+        return text(query), param_dict
 
-    def _cast_params(self, params: Tuple[Any, ...], param_types: Tuple[str, ...]) -> Dict[str, Any]:
+    @staticmethod
+    def _cast_params(params: Tuple[Any, ...], param_types: Tuple[str, ...]) -> Dict[str, Any]:
         """
         Safely casts input values based on provided PostgreSQL type hints.
 
@@ -262,6 +268,8 @@ class DBConnection:
             raw_conn = self._engine.raw_connection()
 
             try:
+                from psycopg2.extras import execute_values
+
                 cursor = raw_conn.cursor()
                 execute_values(cursor, insert_stmt, data)
                 raw_conn.commit()
@@ -332,26 +340,44 @@ class DBConnection:
     def _handle_exception(self, exception: Exception, service_type: str, query: str) -> None:
         """
         Handles and logs DB-specific error messages for better debugging.
+
+        This method conditionally imports database-specific exception classes to avoid
+        requiring both psycopg2 and pyodbc as dependencies in all cases.
+
+        :param exception: The raised exception.
+        :param service_type: Type of routine being executed (e.g., 'sp', 'fn').
+        :param query: The SQL query or routine being executed.
         """
         orig = getattr(exception, 'orig', None)
         args = orig.args if orig else ()
 
-        if isinstance(orig, ForeignKeyViolation):
-            msg = self._extract_pg_error_message(args)
-            self._logger.error(f"Foreign key violation executing {service_type}: {query} -> {msg}", exc_info=False)
+        try:
+            from psycopg2.errors import ForeignKeyViolation
+            if isinstance(orig, ForeignKeyViolation):
+                msg = self._extract_pg_error_message(args)
+                self._logger.error(f"Foreign key violation executing {service_type}: {query} -> {msg}", exc_info=False)
+                return
+        except ImportError:
+            pass
 
-        elif isinstance(orig, IntegrityError):
+        if isinstance(orig, IntegrityError):
             msg = self._extract_pg_error_message(args)
             self._logger.error(f"Integrity error executing {service_type}: {query} -> {msg}", exc_info=False)
+            return
 
-        elif isinstance(orig, ODBCError):
-            msg = self._extract_mssql_error_message(args)
-            self._logger.error(f"SQL Server error executing {service_type}: {query} -> {msg}", exc_info=False)
+        try:
+            from pyodbc import Error as ODBCError
+            if isinstance(orig, ODBCError):
+                msg = self._extract_mssql_error_message(args)
+                self._logger.error(f"SQL Server error executing {service_type}: {query} -> {msg}", exc_info=False)
+                return
+        except ImportError:
+            pass
 
-        else:
-            self._logger.error(f"Error executing {service_type}: {query} -> {exception}", exc_info=False)
+        self._logger.error(f"Error executing {service_type}: {query} -> {exception}", exc_info=False)
 
-    def _extract_pg_error_message(self, e_info: tuple) -> str:
+    @staticmethod
+    def _extract_pg_error_message(e_info: tuple) -> str:
         """
         Parses meaningful PostgreSQL error info from psycopg2.
         """
@@ -364,7 +390,8 @@ class DBConnection:
         detail_msg = next((line.split(":", 1)[1].strip() for line in lines if line.startswith("DETAIL:")), "")
         return f"{main_msg} : {detail_msg}" if detail_msg else main_msg
 
-    def _extract_mssql_error_message(self, e_info: tuple) -> str:
+    @staticmethod
+    def _extract_mssql_error_message(e_info: tuple) -> str:
         """
         Extracts useful error message from ODBC errors.
         """

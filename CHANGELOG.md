@@ -53,7 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [DBCredentials] Updated inline comments and docstrings for clarity and maintainability. Enforced consistent use of `Literal["sqlserver", "postgres"]` as an interim solution before migrating to Enums in a future version.
 - [DBConnection] Refactored dispatching logic to remove duplication across service type handlers (`sp`, `fn`, `query`, `upsert`).
 - [DBConnection] Improved error handling and execution fallback flow, returning `(False, None)` only on expected soft failures.
-- [DBConnection] All docstrings updated to follow Sphinx formatting and clarify behavior of public methods and parameters.
+- [DBConnection] All docstrings updated to follow Sphinx formatting and clarify the behavior of public methods and parameters.
+- README.md was updated to reflect the new features and changes.
 
 ### Removed
 - [DBServices] Internal duplication of execution logic between single and batch service calls, replacing it with a shared dispatching mechanism.

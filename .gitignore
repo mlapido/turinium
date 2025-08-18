@@ -16,3 +16,5 @@ tests/app_config/__pycache__/
 tests/app_config/fixtures/__pycache__/__init__.cpython-313.pyc
 tests/app_config/fixtures/domain/__pycache__/__init__.cpython-313.pyc
 tests/app_config/fixtures/domain/__pycache__/sample_classes.cpython-313.pyc
+tests/fixtures/__pycache__/
+tests/fixtures/domain/__pycache__/

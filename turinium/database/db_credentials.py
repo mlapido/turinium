@@ -56,7 +56,7 @@ class DBCredentials:
                 username=self.username,
                 password=self.password,
                 host=self.server,
-                port=self.port,
+                port=port,
                 database=self.database
             )
 

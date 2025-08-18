@@ -135,8 +135,8 @@ class DBServices:
                 raise ValueError(f"Invalid service type: {service_type}")
 
             required_keys = {
-                "sp": ["routine", "ret_type"],
-                "fn": ["routine", "ret_type"],
+                "sp": ["routine"],
+                "fn": ["routine"],
                 "query": ["query_file"],
                 "upsert": ["table", "columns", "constraint"]
             }
@@ -268,11 +268,9 @@ class DBServices:
     @classmethod
     def exec_service(cls, *args, **kwargs):
         """DEPRECATED. Use `execute()` instead."""
-        cls._logger.warning("exec_service is deprecated. Use execute() instead.")
         return cls.execute(*args, **kwargs)
 
     @classmethod
     def exec_service_batch(cls, *args, **kwargs):
         """DEPRECATED. Use `execute_batch()` instead."""
-        cls._logger.warning("exec_service_batch is deprecated. Use execute_batch() instead.")
         return cls.execute_batch(*args, **kwargs)
