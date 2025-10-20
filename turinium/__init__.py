@@ -14,10 +14,10 @@ License: MIT
 __version__ = "0.3.0"
 
 # Configuration Management
-from .config import AppConfig, SharedAppConfig
+from .config import AppConfig, SharedAppConfig, MissingDataClassError, DataClassInstantiationError
 
 # Database Services
-from .database import DBRouter, DBConnection, DBCredentials, DBServices
+from .database import DBConnection, DBCredentials, DBServices
 
 # Data Sources Services - deprecated
 from .datasources import FTPCredentials, FTPConnection, DataSourceServices
@@ -31,4 +31,6 @@ from .email import EmailSender
 # Logging
 from .logging import TLogging
 
-__all__ = ["AppConfig", "SharedAppConfig", "DBRouter", "DBConnection", "DBCredentials", "DBServices", "EmailSender", "TLogging", "DataSourceServices", "FTPCredentials", "FTPConnection"]
+__all__ = ["AppConfig", "SharedAppConfig", "MissingDataClassError", "DataClassInstantiationError",
+           "DBConnection", "DBCredentials", "DBServices", "EmailSender", "TLogging",
+           "DataSourceServices", "FTPCredentials", "FTPConnection", "StorageServices"]

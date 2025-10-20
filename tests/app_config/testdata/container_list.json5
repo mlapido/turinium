@@ -1,0 +1,12 @@
+{
+  container: {
+    to_dataclass: "tests.app_config.fixtures.domain.sample_classes.ContainerWithList",
+    items: {
+      to_dataclass_list: "tests.app_config.fixtures.domain.sample_classes.ItemBlock",
+      list: [
+        { "name": "John", "value": 1 },
+        { "name": "Jane", "value": 2 }
+      ]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  invalid_list: {
+    to_dataclass_list: "tests.app_config.fixtures.domain.sample_classes.ItemBlock",
+    list: { "name": "John", "value": 1 }
+  }
+}
