@@ -8,10 +8,12 @@ turinium/__pycache__
 turinium.egg-info
 *.whl
 turinium-0.1.0.tar.gz
-turinium/datasources/__pycache__/
+turinium/datasources/__pycache__
 .pypirc
 dist/
 .idea/
-tests/app_config/__pycache__/
-tests/app_config/fixtures/__pycache__/
-tests/app_config/fixtures/domain/__pycache__/
+tests/app_config/__pycache__
+tests/app_config/fixtures/__pycache__
+tests/app_config/fixtures/domain/__pycache__
+tests/fixtures/__pycache__/
+tests/fixtures/domain/__pycache__/

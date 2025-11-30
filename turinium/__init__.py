@@ -11,7 +11,7 @@ Author: Milton Lapido
 License: MIT
 """
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 
 # Configuration Management
 from .config import AppConfig, SharedAppConfig, MissingDataClassError, DataClassInstantiationError

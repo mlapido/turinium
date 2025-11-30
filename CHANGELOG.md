@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.2.2] - 2025-08-18
+## [0.2.3] - unreleased
+
+### Added
+
+### Changed
+
+### Removed
+
+---
+
+## [0.2.2a0] - 2025-08-18
 
 ### Added
 - [AppConfig] Support for `.json5` configuration files using the `json5` package.
