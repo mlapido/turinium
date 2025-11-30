@@ -10,7 +10,7 @@ import importlib
 from dotenv import load_dotenv
 from pathlib import Path
 from typing import Any
-
+from dataclasses import is_dataclass, fields
 
 class MissingDataClassError(Exception):
     """Raised when a specified dataclass module or class cannot be imported."""
@@ -318,17 +318,47 @@ class AppConfig:
         :param data: The config data dictionary (possibly nested).
         :type data: dict
         """
-        for key, value in data.items():
-            if isinstance(value, dict):
-                self._resolve_env_placeholders(value)
-            elif isinstance(value, list):
-                for i in range(len(value)):
-                    if isinstance(value[i], dict):
-                        self._resolve_env_placeholders(value[i])
-                    elif isinstance(value[i], str):
-                        value[i] = self._resolve_placeholder_string(value[i])
-            elif isinstance(value, str):
-                data[key] = self._resolve_placeholder_string(value)
+        def _walk(obj):
+            # strings
+            if isinstance(obj, str):
+                return self._resolve_placeholder_string(obj)
+
+            # lists
+            if isinstance(obj, list):
+                for i, item in enumerate(obj):
+                    obj[i] = _walk(item)
+                return obj
+
+            # dicts
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    obj[k] = _walk(v)
+                return obj
+
+            # dataclass instances
+            if is_dataclass(obj) and not isinstance(obj, type):
+                # detect frozen dataclasses
+                params = getattr(obj, "__dataclass_params__", None)
+                is_frozen = bool(getattr(params, "frozen", False))
+
+                if is_frozen:
+                    # rebuild a new instance
+                    obj_type = type(obj)
+                    kwargs = {}
+                    for f in fields(obj):
+                        kwargs[f.name] = _walk(getattr(obj, f.name))
+                    return obj_type(**kwargs)
+                else:
+                    # mutate in place
+                    for f in fields(obj):
+                        setattr(obj, f.name, _walk(getattr(obj, f.name)))
+                    return obj
+
+            # anything else: leave as is
+            return obj
+
+        return _walk(data)
+
 
     def _resolve_placeholder_string(self, value):
         """
