@@ -33,6 +33,8 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Python Modules"
 ]
+
+# Base dependencies
 dependencies = [
   "pyyaml",
   "toml",
@@ -44,14 +46,38 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-database_odbc = ["sqlalchemy", "pyodbc", "difflib", "pandas"]
-database_pg = ["sqlalchemy", "psycopg2-binary", "pandas"]
-database_all = ["sqlalchemy", "pyodbc", "psycopg2-binary", "difflib", "pandas"]
+
+# Removed difflib — it's part of the stdlib
+database_odbc = [
+  "pyodbc",
+  "pandas"
+]
+
+database_pg = [
+  "psycopg2-binary",
+  "pandas"
+]
+
+database_all = [
+  "pyodbc",
+  "psycopg2-binary",
+  "pandas"
+]
+
 cli = ["click"]
+
 testing = ["pytest", "pytest-cov"]
+
 dev = ["black", "flake8", "mypy"]
-docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mkdocs-awesome-pages-plugin",
-        "mkdocs-git-revision-date-localized-plugin", "mike"]
+
+docs = [
+  "mkdocs",
+  "mkdocs-material",
+  "mkdocstrings[python]",
+  "mkdocs-awesome-pages-plugin",
+  "mkdocs-git-revision-date-localized-plugin",
+  "mike"
+]
 
 [tool.setuptools]
 include-package-data = true
