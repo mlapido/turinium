@@ -49,6 +49,7 @@ class DBServices:
     - **upsert**: A batch INSERT or UPSERT operation using either bulk loading
       or parameterized inserts, depending on the database backend
     - **query**: A raw SQL query loaded from a `.sql` file and executed directly
+    - **view**: A SQL view that can be executed directly, with or witout params.
 
     All executions are routed through the appropriate `DBConnection` methods:
     `execute()` for single operations and `execute_batch()` for row-wise batched services.
@@ -115,13 +116,13 @@ class DBServices:
         """
         Registers and validates service entries.
 
-        Service types supported: 'sp', 'fn', 'query', 'upsert'
+        Service types supported: 'sp', 'fn', 'query', 'upsert', 'view'
 
         :param services_config: Dictionary of service_name → config
         :raises ValueError: If a required field is missing
         :raises FileNotFoundError: If a query_file is specified but does not exist
         """
-        valid_types = {"sp", "fn", "upsert", "query"}
+        valid_types = {"sp", "fn", "upsert", "query", "view"}
         for service_name, config in services_config.items():
             db = config.get("db") or config.get("database")
             service_type = config.get("type")
@@ -137,6 +138,7 @@ class DBServices:
             required_keys = {
                 "sp": ["routine"],
                 "fn": ["routine"],
+                "view": ["view"],
                 "query": ["query_file"],
                 "upsert": ["table", "columns", "constraint"]
             }

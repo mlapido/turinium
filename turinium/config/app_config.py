@@ -170,9 +170,8 @@ class AppConfig:
     def _resolve_dataclass_blocks(self):
         """
         Scans loaded config blocks and instantiates dataclasses for any block that
-        contains a 'to_dataclass' or 'to_dataclass_list' field (even deeply nested ones).
-
-        Populates self._config_classes[block_name] with the instantiated objects.
+        contains a 'to_dataclass', 'to_dataclass_list' or 'to_dataclass_dict' field
+        (even deeply nested ones).
 
         :raises MissingDataClassError: If module or class cannot be found.
         :raises DataClassInstantiationError: If instantiation fails.
@@ -182,44 +181,82 @@ class AppConfig:
             """
             Recursively resolves a single config block, handling nested structures.
 
-            Returns:
-                The resolved block (possibly a dataclass or list of dataclasses).
+            :return: The resolved block (possibly a dataclass, list of dataclasses, or dict of dataclasses).
+            :rtype: Any
             """
             if isinstance(block, dict):
-                if "to_dataclass_list" in block:
-                    if "list" not in block:
+                if 'to_dataclass_list' in block:
+                    if 'list' not in block:
                         raise DataClassInstantiationError(
                             f"Block with 'to_dataclass_list' must contain a 'list' key: {block}"
                         )
-                    if not isinstance(block["list"], list):
+                    if not isinstance(block['list'], list):
                         raise DataClassInstantiationError(
                             f"The 'list' key must be a list in block with 'to_dataclass_list': {block}"
                         )
 
-                    class_path = block.pop("to_dataclass_list")
-                    items = block.pop("list")
+                    class_path = block.pop('to_dataclass_list')
+                    items = block.pop('list')
 
                     try:
-                        module_path, _, class_name = class_path.rpartition(".")
+                        module_path, _, class_name = class_path.rpartition('.')
                         if not module_path:
                             raise ValueError("Invalid class path. Must be in 'module.ClassName' format.")
                         module = importlib.import_module(module_path)
                         cls = getattr(module, class_name)
+
                         return [cls(**resolve_block(item)) if isinstance(item, dict) else item for item in items]
                     except (ImportError, AttributeError, ValueError) as e:
                         raise MissingDataClassError(f"Could not import '{class_path}': {e}")
                     except Exception as e:
                         raise DataClassInstantiationError(f"Failed to instantiate list of '{class_path}': {e}")
 
-                elif "to_dataclass" in block:
-                    class_path = block["to_dataclass"]
+                elif 'to_dataclass_dict' in block:
+                    if 'dict' not in block:
+                        raise DataClassInstantiationError(
+                            f"Block with 'to_dataclass_dict' must contain a 'dict' key: {block}"
+                        )
+                    if not isinstance(block['dict'], dict):
+                        raise DataClassInstantiationError(
+                            f"The 'dict' key must be a dict in block with 'to_dataclass_dict': {block}"
+                        )
+
+                    class_path = block.pop('to_dataclass_dict')
+                    items_dict = block.pop('dict')
+
                     try:
-                        module_path, _, class_name = class_path.rpartition(".")
+                        module_path, _, class_name = class_path.rpartition('.')
                         if not module_path:
                             raise ValueError("Invalid class path. Must be in 'module.ClassName' format.")
                         module = importlib.import_module(module_path)
                         cls = getattr(module, class_name)
-                        resolved = {k: resolve_block(v) for k, v in block.items() if k != "to_dataclass"}
+
+                        resolved_dict = {}
+                        for item_key, item_cfg in items_dict.items():
+                            if not isinstance(item_cfg, dict):
+                                raise DataClassInstantiationError(
+                                    f"Each value in 'dict' must be a dict for 'to_dataclass_dict': {items_dict}"
+                                )
+
+                            resolved_cfg = {k: resolve_block(v) for k, v in item_cfg.items()}
+                            resolved_dict[item_key] = cls(**resolved_cfg)
+
+                        return resolved_dict
+                    except (ImportError, AttributeError, ValueError) as e:
+                        raise MissingDataClassError(f"Could not import '{class_path}': {e}")
+                    except Exception as e:
+                        raise DataClassInstantiationError(f"Failed to instantiate dict of '{class_path}': {e}")
+
+                elif 'to_dataclass' in block:
+                    class_path = block['to_dataclass']
+                    try:
+                        module_path, _, class_name = class_path.rpartition('.')
+                        if not module_path:
+                            raise ValueError("Invalid class path. Must be in 'module.ClassName' format.")
+                        module = importlib.import_module(module_path)
+                        cls = getattr(module, class_name)
+
+                        resolved = {k: resolve_block(v) for k, v in block.items() if k != 'to_dataclass'}
                         return cls(**resolved)
                     except (ImportError, AttributeError, ValueError) as e:
                         raise MissingDataClassError(f"Could not import '{class_path}': {e}")

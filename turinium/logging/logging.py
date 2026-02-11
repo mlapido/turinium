@@ -5,6 +5,70 @@ import colorlog
 from pathlib import Path
 
 
+import logging
+
+
+def _safe_text_for_encoding(text: str, encoding: str) -> str:
+    """Return a version of *text* that is guaranteed encodable in *encoding*.
+
+    Workflow:
+        1. Try to encode using the target encoding.
+        2. If it fails, encode again using errors='backslashreplace' so characters that
+           cannot be represented become escape sequences (e.g. '\\u2705').
+        3. Decode back to str in the same encoding.
+
+    This prevents StreamHandler.emit() from raising UnicodeEncodeError on Windows cp1252.
+
+    Params:
+        text: Original text that may contain non-encodable characters (e.g. emojis).
+        encoding: The target stream encoding (e.g. 'cp1252', 'utf-8').
+
+    Returns:
+        A safe string that can be written to a stream using that encoding.
+    """
+    if not text:
+        return text
+
+    try:
+        text.encode(encoding)
+        return text
+    except UnicodeEncodeError:
+        return text.encode(encoding, errors='backslashreplace').decode(encoding, errors='strict')
+
+
+class SafeStreamHandler(logging.StreamHandler):
+    """A StreamHandler that never crashes on UnicodeEncodeError.
+
+    Notes:
+        - PyCharm and some Windows consoles may use cp1252 even when Python is UTF-8 capable.
+        - This handler guarantees logging doesn't emit '--- Logging error ---' blocks.
+    """
+
+    def emit(self, record: logging.LogRecord) -> None:
+        """Emit a record, sanitizing the message if the stream can't encode it."""
+        try:
+            super().emit(record)
+        except UnicodeEncodeError:
+            # Determine the stream encoding; fallback to cp1252 because that's the common Windows case.
+            stream = getattr(self, 'stream', None)
+            encoding = getattr(stream, 'encoding', None) or 'cp1252'
+
+            msg = record.getMessage()
+            safe_msg = _safe_text_for_encoding(msg, encoding)
+
+            # Rebuild the formatted output with the sanitized message.
+            # We must not permanently mutate the record for other handlers (e.g. file handlers).
+            original_msg = record.msg
+            original_args = record.args
+            try:
+                record.msg = safe_msg
+                record.args = ()
+                super().emit(record)
+            finally:
+                record.msg = original_msg
+                record.args = original_args
+
+
 class JSONHandler(logging.Handler):
     """
     Custom logging handler to output logs in structured JSON format.
@@ -110,7 +174,8 @@ class TLogging(logging.Logger):
 
     def _create_console_handler(self):
         """Creates and returns a colorized console handler."""
-        ch = logging.StreamHandler()
+        ch = SafeStreamHandler()
+
         color_formatter = colorlog.ColoredFormatter(
             '%(log_color)s%(levelname)s: %(message)s',
             log_colors={

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.3] - unreleased
 
 ### Added
+- [DBServices] New `view` services type added.
 
 ### Changed
 

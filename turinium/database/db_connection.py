@@ -63,7 +63,7 @@ class DBConnection:
         """
         Executes a database service operation such as a stored procedure, function, upsert, or SQL query file.
 
-        :param service_type: One of: 'sp', 'fn', 'upsert' or 'query'.
+        :param service_type: One of: 'sp', 'fn', 'upsert', 'view' or 'query'.
         :param query: Name of the routine or path identifier to a .sql file.
         :param params: Parameters for the execution (tuple for routines or data for upsert).
         :param param_types: PostgreSQL types used for casting.
@@ -73,6 +73,9 @@ class DBConnection:
         """
         if service_type in ("sp", "fn"):
             return self._execute_routine(service_type, query, params, param_types, ret_type)
+
+        if service_type in ('view'):
+            return self._execute_view(service_type, query, params, param_types, ret_type)
 
         if service_type == "upsert":
             if not service_config:
@@ -134,6 +137,75 @@ class DBConnection:
         except Exception as e:
             self._handle_exception(e, service_type, routine)
             return False, None
+
+    def _execute_view(self, service_type: str, routine: str, params: Tuple[Any, ...] = (),
+                      param_types: Optional[Tuple[str, ...]] = None,
+                      ret_type: str = "default") -> Tuple[bool, Union[pd.DataFrame, Any, None]]:
+        """
+        Executes a view using safe parameter binding.
+
+        Supports both SQL Server and PostgreSQL and returns either a scalar result,
+        a full result set, or no result depending on the return mode.
+
+        :param service_type: Either "sp" for stored procedure or "fn" for function.
+        :param query: Fully qualified name of the routine (e.g., schema.proc_name).
+        :param params: Parameters to bind in positional order.
+        :param param_types:  Type hints for casting (mainly used in PostgreSQL - optional).
+        :param ret_type: Either "out" for scalar value, "pandas" for DataFrame, or "default".
+
+        :return: (success: bool, result or None)  - If success is True, result contains the return value.
+                                                  - If False, result is None.
+        """
+        start_time = time.time()
+        params = params or {}
+
+        # 1. Validate required filters
+        if service_config and "required_filters" in service_config:
+            for req in service_config["required_filters"]:
+                if req not in params:
+                    return False, f"Missing required filter '{req}' for view {view_name}"
+
+        # 2. Column selection
+        columns = "*"
+        if service_config and "columns" in service_config:
+            col_list = service_config["columns"]
+            columns = ", ".join(col_list)
+
+        sql = f"SELECT {columns} FROM {view_name}"
+
+        # 3. WHERE clause
+        where_clauses = []
+        bound_params = {}
+
+        if service_config and "filters" in service_config:
+            for col in service_config["filters"]:
+                if col in params:
+                    where_clauses.append(f"{col} = :{col}")
+                    bound_params[col] = params[col]
+
+        if where_clauses:
+            sql += " WHERE " + " AND ".join(where_clauses)
+
+        # 4. ORDER BY clause
+        if service_config and "order" in service_config:
+            sql += f" ORDER BY {service_config['order']}"
+
+        try:
+            with self._engine.begin() as conn:
+                if ret_type == "pandas":
+                    df = pd.read_sql(text(sql), conn, params=bound_params)
+                    return True, df
+
+                result = conn.execute(text(sql), bound_params).fetchall()
+                return True, result
+
+        except Exception as e:
+            self._logger.error(f"Error executing view {view_name}: {e}", exc_info=True)
+            return False, None
+
+        finally:
+            if self._log_timing_enabled:
+                self._log_timing(view_name, start_time)
 
     def _build_query(self, service_type: str, routine: str, params: Tuple[Any, ...],
                      param_types: Optional[Tuple[str, ...]] = None) -> Tuple[Any, Dict[str, Any]]:
