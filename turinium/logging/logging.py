@@ -125,11 +125,16 @@ class JSONHandler(logging.Handler):
         return bool(self.json_data)
 
     def close(self):
-        """Write the JSON log to disk upon closing."""
+        """
+        Write the JSON log to disk upon closing.
+
+        ``self.filename`` is the full path of the log file (TLogging passes ``json/<name>.json``); its folder is
+        created when missing.
+        """
         try:
-            json_dir = Path("./json")
-            json_dir.mkdir(parents=True, exist_ok=True)
-            with open(json_dir / self.filename, 'w') as f:
+            path = Path(self.filename)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, 'w') as f:
                 json.dump(self.json_data, f, indent=4)
         except Exception as e:
             print(f"Error saving JSON log: {e}")
